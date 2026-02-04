@@ -25,9 +25,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             GestorGastosTheme {
                 var screen by remember {
-                    mutableStateOf(
-                        if (gastosModule.isLoggedIn()) "gastos" else "login"
-                    )
+                    mutableStateOf("login")
                 }
 
                 when (screen) {
@@ -38,7 +36,7 @@ class MainActivity : ComponentActivity() {
                     )
                     "registro" -> RegistroScreen(
                         factory = gastosModule.provideAuthViewModelFactory(),
-                        onRegistroSuccess = { screen = "gastos" },
+                        onRegistroSuccess = { screen = "login" },
                         onGoToLogin = { screen = "login" }
                     )
                     "gastos" -> GastosScreen(

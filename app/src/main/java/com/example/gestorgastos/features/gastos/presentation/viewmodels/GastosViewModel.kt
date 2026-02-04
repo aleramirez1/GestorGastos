@@ -54,11 +54,11 @@ class GastosViewModel(
         }
     }
 
-    fun crearGasto(monto: Double, descripcion: String, quienPago: String) {
+    fun crearGasto(monto: Double, descripcion: String, quienPago: String, tipo: String) {
         _uiState.update { it.copy(isLoading = true, error = null, gastoCreado = false) }
 
         viewModelScope.launch {
-            val result = crearGastoUseCase(monto, descripcion, quienPago)
+            val result = crearGastoUseCase(monto, descripcion, quienPago, tipo)
             _uiState.update { currentState ->
                 result.fold(
                     onSuccess = {

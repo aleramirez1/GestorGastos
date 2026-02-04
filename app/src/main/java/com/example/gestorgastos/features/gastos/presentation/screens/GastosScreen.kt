@@ -16,17 +16,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,13 +41,13 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,19 +62,25 @@ fun GastosScreen(factory: GastosViewModelFactory) {
     val vm: GastosViewModel = viewModel(factory = factory)
     val state by vm.uiState.collectAsStateWithLifecycle()
 
-    var selectedCategory by remember { mutableStateOf<String?>(null) }
-    var monto by remember { mutableStateOf("") }
-    var descripcion by remember { mutableStateOf("") }
-    var quienPago by remember { mutableStateOf("") }
-    var teDeben by remember { mutableStateOf(true) }
-    var personaExpanded by remember { mutableStateOf(false) }
+    var currentScreen by remember { mutableStateOf("inicio") }
+    var nombreGrupo by remember { mutableStateOf("") }
+    var numPersonas by remember { mutableStateOf("") }
+    val personas = remember { mutableStateListOf<String>() }
+    val grupos = remember { mutableStateListOf<Pair<String, List<String>>>() }
+    var grupoSeleccionado by remember { mutableStateOf<Int?>(null) }
+
+    var montoTeDeben by remember { mutableStateOf("") }
+    var descripcionTeDeben by remember { mutableStateOf("") }
+
+    var montoTuDebes by remember { mutableStateOf("") }
+    var descripcionTuDebes by remember { mutableStateOf("") }
+    var personaTuDebes by remember { mutableStateOf("") }
+    var expandedTuDebes by remember { mutableStateOf(false) }
 
     val lightBlue = Color(0xFF4FC3F7)
     val darkBlue = Color(0xFF5C6BC0)
     val purple = Color(0xFF7E57C2)
     val bgColor = Color(0xFFE3F2FD)
-
-    val personas = listOf("Juan", "Maria", "Pedro", "Ana", "Carlos")
 
     Box(
         modifier = Modifier
@@ -104,288 +111,532 @@ fun GastosScreen(factory: GastosViewModelFactory) {
         ) {
             Spacer(modifier = Modifier.height(60.dp))
 
-            if (selectedCategory == null) {
-                Text(
-                    text = "Gestor de Gastos",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = darkBlue
-                )
+            when (currentScreen) {
+                "inicio" -> {
+                    Text(
+                        text = "Mis Grupos",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = darkBlue
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                Text(
-                    text = "Selecciona una categoria",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Gray
-                )
+                    if (grupos.isEmpty()) {
+                        Text(
+                            text = "No tienes grupos aun",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Gray
+                        )
+                    } else {
+                        grupos.forEachIndexed { index, grupo ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        grupoSeleccionado = index
+                                        personas.clear()
+                                        personas.addAll(grupo.second)
+                                        nombreGrupo = grupo.first
+                                        currentScreen = "gastos"
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = lightBlue),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(20.dp)) {
+                                    Text(
+                                        text = grupo.first,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "${grupo.second.size} personas",
+                                        fontSize = 14.sp,
+                                        color = Color.White.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                Spacer(modifier = Modifier.height(40.dp))
+                    Button(
+                        onClick = { currentScreen = "crear_grupo" },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = darkBlue),
+                        shape = RoundedCornerShape(25.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Generar grupo", fontSize = 16.sp)
+                    }
+                }
 
-                CategoryCard(
-                    title = "Companeros",
-                    icon = Icons.Default.Groups,
-                    color = lightBlue,
-                    onClick = { selectedCategory = "Companeros" }
-                )
+                "crear_grupo" -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { currentScreen = "inicio" }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        }
+                        Text(
+                            text = "Crear Grupo",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = darkBlue
+                        )
+                    }
+                    Text(
+                        text = "Ingresa los datos del grupo",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(30.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                CategoryCard(
-                    title = "Trabajo",
-                    icon = Icons.Default.Work,
-                    color = purple,
-                    onClick = { selectedCategory = "Trabajo" }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                CategoryCard(
-                    title = "Familia",
-                    icon = Icons.Default.Home,
-                    color = darkBlue,
-                    onClick = { selectedCategory = "Familia" }
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                if (state.resumen != null) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "Resumen",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Total: $${state.resumen!!.totalGastado}")
-                            Text("Por persona: $${state.resumen!!.montoPorPersona}")
-                        }
-                    }
-                }
-
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { selectedCategory = null }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                    Text(
-                        text = selectedCategory!!,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = darkBlue
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = "Nuevo Gasto",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                            color = darkBlue
-                        )
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            Button(
-                                onClick = { teDeben = true },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (teDeben) lightBlue else Color.LightGray
-                                ),
-                                shape = RoundedCornerShape(20.dp)
-                            ) {
-                                Text("Te deben")
-                            }
-                            Button(
-                                onClick = { teDeben = false },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (!teDeben) purple else Color.LightGray
-                                ),
-                                shape = RoundedCornerShape(20.dp)
-                            ) {
-                                Text("Tu debes")
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        ExposedDropdownMenuBox(
-                            expanded = personaExpanded,
-                            onExpandedChange = { personaExpanded = !personaExpanded }
-                        ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
                             TextField(
-                                value = quienPago,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("A quien") },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = personaExpanded)
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(),
+                                value = nombreGrupo,
+                                onValueChange = { nombreGrupo = it },
+                                label = { Text("Nombre del grupo") },
+                                modifier = Modifier.fillMaxWidth(),
                                 colors = TextFieldDefaults.colors(
                                     focusedContainerColor = Color(0xFFF5F5F5),
-                                    unfocusedContainerColor = Color(0xFFF5F5F5)
+                                    unfocusedContainerColor = Color(0xFFF5F5F5),
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
                                 ),
                                 shape = RoundedCornerShape(12.dp)
                             )
-                            ExposedDropdownMenu(
-                                expanded = personaExpanded,
-                                onDismissRequest = { personaExpanded = false }
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            TextField(
+                                value = numPersonas,
+                                onValueChange = { numPersonas = it },
+                                label = { Text("Cuantas personas") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color(0xFFF5F5F5),
+                                    unfocusedContainerColor = Color(0xFFF5F5F5),
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                    Button(
+                        onClick = {
+                            val num = numPersonas.toIntOrNull() ?: 0
+                            if (nombreGrupo.isNotBlank() && num > 0) {
+                                personas.clear()
+                                repeat(num) { personas.add("") }
+                                currentScreen = "agregar_personas"
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = lightBlue),
+                        shape = RoundedCornerShape(25.dp)
+                    ) {
+                        Text("Continuar", fontSize = 16.sp)
+                    }
+                }
+
+                "agregar_personas" -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { currentScreen = "crear_grupo" }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        }
+                        Text(
+                            text = nombreGrupo,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = darkBlue
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Agregar Participantes",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = darkBlue
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            personas.forEachIndexed { index, nombre ->
+                                TextField(
+                                    value = nombre,
+                                    onValueChange = { personas[index] = it },
+                                    label = { Text("Persona ${index + 1}") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = Color(0xFFF5F5F5),
+                                        unfocusedContainerColor = Color(0xFFF5F5F5),
+                                        focusedIndicatorColor = Color.Transparent,
+                                        unfocusedIndicatorColor = Color.Transparent
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                    Button(
+                        onClick = {
+                            val validPersonas = personas.filter { it.isNotBlank() }
+                            if (validPersonas.isNotEmpty()) {
+                                grupos.add(Pair(nombreGrupo, validPersonas.toList()))
+                                personas.clear()
+                                personas.addAll(validPersonas)
+                                grupoSeleccionado = grupos.size - 1
+                                currentScreen = "gastos"
+                                nombreGrupo = ""
+                                numPersonas = ""
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = lightBlue),
+                        shape = RoundedCornerShape(25.dp)
+                    ) {
+                        Text("Continuar", fontSize = 16.sp)
+                    }
+                }
+
+                "gastos" -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { currentScreen = "inicio" }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        }
+                        Text(
+                            text = if (grupoSeleccionado != null && grupoSeleccionado!! < grupos.size) 
+                                grupos[grupoSeleccionado!!].first else nombreGrupo,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = darkBlue
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    var tipoSeleccionado by remember { mutableStateOf<String?>(null) }
+
+                    if (tipoSeleccionado == null) {
+                        Text(
+                            text = "Selecciona una opcion",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp)
+                                .clickable { tipoSeleccionado = "te_deben" },
+                            colors = CardDefaults.cardColors(containerColor = lightBlue),
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
                             ) {
-                                personas.forEach { persona ->
-                                    DropdownMenuItem(
-                                        text = { Text(persona) },
-                                        onClick = {
-                                            quienPago = persona
-                                            personaExpanded = false
-                                        }
+                                Text(
+                                    text = "Te deben",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp)
+                                .clickable { tipoSeleccionado = "tu_debes" },
+                            colors = CardDefaults.cardColors(containerColor = purple),
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Tu debes",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        if (state.resumen != null && state.resumen!!.deudas.isNotEmpty()) {
+                            Text(
+                                text = "Resumen de deudas",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = darkBlue
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            state.resumen!!.deudas.forEach { deuda ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = deuda.descripcion,
+                                        modifier = Modifier.padding(16.dp)
                                     )
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TextField(
-                            value = monto,
-                            onValueChange = { monto = it },
-                            label = { Text("Cuanto") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color(0xFFF5F5F5),
-                                unfocusedContainerColor = Color(0xFFF5F5F5)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TextField(
-                            value = descripcion,
-                            onValueChange = { descripcion = it },
-                            label = { Text("De que se gasto") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color(0xFFF5F5F5),
-                                unfocusedContainerColor = Color(0xFFF5F5F5)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        if (state.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.align(Alignment.CenterHorizontally),
+                    } else if (tipoSeleccionado == "te_deben") {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { tipoSeleccionado = null }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                            }
+                            Text(
+                                text = "Te deben",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
                                 color = lightBlue
                             )
-                        } else {
-                            Button(
-                                onClick = {
-                                    val m = monto.toDoubleOrNull() ?: 0.0
-                                    val desc = "$selectedCategory - $descripcion"
-                                    vm.crearGasto(m, desc, quienPago)
-                                    monto = ""
-                                    descripcion = ""
-                                    quienPago = ""
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = lightBlue),
-                                shape = RoundedCornerShape(25.dp)
-                            ) {
-                                Text("Registrar Gasto", fontSize = 16.sp)
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text(
+                                    text = "${personas.size} personas",
+                                    fontSize = 16.sp,
+                                    color = Color.Gray
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                personas.forEach { persona ->
+                                    Text(
+                                        text = "• $persona",
+                                        fontSize = 16.sp,
+                                        color = darkBlue
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                TextField(
+                                    value = montoTeDeben,
+                                    onValueChange = { montoTeDeben = it },
+                                    label = { Text("Monto total") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = Color(0xFFF5F5F5),
+                                        unfocusedContainerColor = Color(0xFFF5F5F5)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+
+                                if (montoTeDeben.isNotBlank()) {
+                                    val montoTotal = montoTeDeben.toDoubleOrNull() ?: 0.0
+                                    val montoPorPersona = montoTotal / personas.size
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Cada uno te debe: $${String.format("%.2f", montoPorPersona)}",
+                                        color = lightBlue,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                TextField(
+                                    value = descripcionTeDeben,
+                                    onValueChange = { descripcionTeDeben = it },
+                                    label = { Text("Por que") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = Color(0xFFF5F5F5),
+                                        unfocusedContainerColor = Color(0xFFF5F5F5)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                if (state.isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                                        color = lightBlue
+                                    )
+                                } else {
+                                    Button(
+                                        onClick = {
+                                            val montoTotal = montoTeDeben.toDoubleOrNull() ?: 0.0
+                                            if (montoTotal > 0) {
+                                                val montoPorPersona = montoTotal / personas.size
+                                                personas.forEach { persona ->
+                                                    vm.crearGasto(montoPorPersona, descripcionTeDeben, persona, "te_deben")
+                                                }
+                                                montoTeDeben = ""
+                                                descripcionTeDeben = ""
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = lightBlue),
+                                        shape = RoundedCornerShape(25.dp)
+                                    ) {
+                                        Text("Registrar", fontSize = 16.sp)
+                                    }
+                                }
+
+                                if (state.error != null) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(state.error ?: "", color = Color.Red)
+                                }
                             }
                         }
 
-                        if (state.error != null) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(state.error ?: "", color = Color.Red)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                if (state.resumen != null && state.resumen!!.deudas.isNotEmpty()) {
-                    Text(
-                        text = "Deudas en $selectedCategory",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = darkBlue
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    state.resumen!!.deudas.forEach { deuda ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { tipoSeleccionado = null }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                            }
                             Text(
-                                text = deuda.descripcion,
-                                modifier = Modifier.padding(16.dp)
+                                text = "Tu debes",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = purple
                             )
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                ExposedDropdownMenuBox(
+                                    expanded = expandedTuDebes,
+                                    onExpandedChange = { expandedTuDebes = !expandedTuDebes }
+                                ) {
+                                    TextField(
+                                        value = personaTuDebes,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("A quien le debes") },
+                                        trailingIcon = {
+                                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTuDebes)
+                                        },
+                                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = Color(0xFFF5F5F5),
+                                            unfocusedContainerColor = Color(0xFFF5F5F5)
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    ExposedDropdownMenu(
+                                        expanded = expandedTuDebes,
+                                        onDismissRequest = { expandedTuDebes = false }
+                                    ) {
+                                        personas.forEach { persona ->
+                                            DropdownMenuItem(
+                                                text = { Text(persona) },
+                                                onClick = {
+                                                    personaTuDebes = persona
+                                                    expandedTuDebes = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                TextField(
+                                    value = montoTuDebes,
+                                    onValueChange = { montoTuDebes = it },
+                                    label = { Text("Cuanto") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = Color(0xFFF5F5F5),
+                                        unfocusedContainerColor = Color(0xFFF5F5F5)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                TextField(
+                                    value = descripcionTuDebes,
+                                    onValueChange = { descripcionTuDebes = it },
+                                    label = { Text("Por que") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = Color(0xFFF5F5F5),
+                                        unfocusedContainerColor = Color(0xFFF5F5F5)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                if (state.isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                                        color = purple
+                                    )
+                                } else {
+                                    Button(
+                                        onClick = {
+                                            val m = montoTuDebes.toDoubleOrNull() ?: 0.0
+                                            if (m > 0 && personaTuDebes.isNotBlank()) {
+                                                vm.crearGasto(m, descripcionTuDebes, personaTuDebes, "tu_debes")
+                                                montoTuDebes = ""
+                                                descripcionTuDebes = ""
+                                                personaTuDebes = ""
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = purple),
+                                        shape = RoundedCornerShape(25.dp)
+                                    ) {
+                                        Text("Registrar", fontSize = 16.sp)
+                                    }
+                                }
+
+                                if (state.error != null) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(state.error ?: "", color = Color.Red)
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun CategoryCard(
-    title: String,
-    icon: ImageVector,
-    color: Color,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = color),
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = Color.White
-            )
-            Spacer(modifier = Modifier.width(20.dp))
-            Text(
-                text = title,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
         }
     }
 }

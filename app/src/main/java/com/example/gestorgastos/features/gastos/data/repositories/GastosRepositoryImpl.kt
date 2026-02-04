@@ -11,8 +11,8 @@ class GastosRepositoryImpl(
     private val api: GastosApi
 ) : GastosRepository {
 
-    override suspend fun crearGasto(monto: Double, descripcion: String, quienPago: String): Gasto {
-        val request = GastoRequest(monto, descripcion, quienPago)
+    override suspend fun crearGasto(monto: Double, descripcion: String, quienPago: String, tipo: String): Gasto {
+        val request = GastoRequest(monto, descripcion, quienPago, tipo)
         return api.crearGasto(request).toDomain()
     }
 

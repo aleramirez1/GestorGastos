@@ -6,7 +6,8 @@ data class GastoRequest(
     val monto: Double,
     val descripcion: String,
     @SerializedName("quien_pago")
-    val quienPago: String
+    val quienPago: String,
+    val tipo: String
 )
 
 data class GastoResponse(
