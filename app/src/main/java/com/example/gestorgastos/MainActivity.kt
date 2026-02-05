@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -24,12 +25,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             GestorGastosTheme {
-                var screen by remember {
-                    mutableStateOf("login")
-                }
+                var screen by remember { mutableStateOf("login") }
+                var sessionKey by remember { mutableIntStateOf(0) }
 
                 when (screen) {
                     "login" -> LoginScreen(
+                        key = sessionKey,
                         factory = gastosModule.provideAuthViewModelFactory(),
                         onLoginSuccess = { screen = "gastos" },
                         onGoToRegistro = { screen = "registro" }
@@ -40,7 +41,13 @@ class MainActivity : ComponentActivity() {
                         onGoToLogin = { screen = "login" }
                     )
                     "gastos" -> GastosScreen(
-                        factory = gastosModule.provideGastosViewModelFactory()
+                        key = sessionKey,
+                        factory = gastosModule.provideGastosViewModelFactory(),
+                        onLogout = {
+                            appContainer.tokenManager.clearAll()
+                            sessionKey++
+                            screen = "login"
+                        }
                     )
                 }
             }

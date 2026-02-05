@@ -16,7 +16,7 @@ class GastosModule(private val appContainer: AppContainer) {
     }
 
     fun provideGastosViewModelFactory(): GastosViewModelFactory {
-        return GastosViewModelFactory(appContainer.gastosRepository)
+        return GastosViewModelFactory(appContainer.gastosRepository, appContainer.tokenManager)
     }
 
     fun isLoggedIn(): Boolean {

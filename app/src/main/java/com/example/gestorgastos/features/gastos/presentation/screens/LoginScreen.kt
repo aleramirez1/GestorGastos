@@ -48,11 +48,12 @@ import com.example.gestorgastos.features.gastos.presentation.viewmodels.AuthView
 
 @Composable
 fun LoginScreen(
+    key: Int = 0,
     factory: AuthViewModelFactory,
     onLoginSuccess: () -> Unit,
     onGoToRegistro: () -> Unit
 ) {
-    val vm: AuthViewModel = viewModel(factory = factory)
+    val vm: AuthViewModel = viewModel(key = "login_$key", factory = factory)
     val state by vm.uiState.collectAsStateWithLifecycle()
 
     var email by remember { mutableStateOf("") }
@@ -119,7 +120,7 @@ fun LoginScreen(
             TextField(
                 value = email,
                 onValueChange = { email = it },
-                placeholder = { Text("Username", color = Color.White) },
+                placeholder = { Text("Nombre", color = Color.White) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = purple.copy(alpha = 0.7f),

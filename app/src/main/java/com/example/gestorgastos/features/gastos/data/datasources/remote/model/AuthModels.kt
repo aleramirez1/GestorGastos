@@ -1,7 +1,7 @@
 package com.example.gestorgastos.features.gastos.data.datasources.remote.model
 
 data class LoginRequest(
-    val email: String,
+    val nombre: String,
     val password: String
 )
 

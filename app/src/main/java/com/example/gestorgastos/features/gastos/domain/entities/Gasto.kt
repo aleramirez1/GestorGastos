@@ -12,6 +12,7 @@ data class GastoGrupo(
 data class Grupo(
     val id: Int,
     val nombre: String,
+    val usuarioId: Int,
     val fechaCreacion: String,
     val personas: List<String>,
     val gastos: List<GastoGrupo>

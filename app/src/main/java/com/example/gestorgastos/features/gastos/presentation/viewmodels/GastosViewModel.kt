@@ -2,6 +2,7 @@ package com.example.gestorgastos.features.gastos.presentation.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.gestorgastos.features.gastos.data.datasources.local.TokenManager
 import com.example.gestorgastos.features.gastos.domain.entities.Grupo
 import com.example.gestorgastos.features.gastos.domain.repositories.GastosRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,8 @@ data class GastosUiState(
 )
 
 class GastosViewModel(
-    private val repository: GastosRepository
+    private val repository: GastosRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GastosUiState())
@@ -28,10 +30,12 @@ class GastosViewModel(
     }
 
     fun cargarGrupos() {
+        val usuarioId = tokenManager.getUserId()
+        if (usuarioId == 0) return
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val grupos = repository.obtenerGrupos()
+                val grupos = repository.obtenerGrupos(usuarioId)
                 _uiState.update { it.copy(isLoading = false, grupos = grupos) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
@@ -40,16 +44,14 @@ class GastosViewModel(
     }
 
     fun crearGrupo(nombre: String, personas: List<String>) {
+        val usuarioId = tokenManager.getUserId()
+        if (usuarioId == 0) return
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val grupo = repository.crearGrupo(nombre, personas)
+                val grupo = repository.crearGrupo(nombre, personas, usuarioId)
                 _uiState.update { 
-                    it.copy(
-                        isLoading = false, 
-                        grupos = it.grupos + grupo,
-                        grupoActual = grupo
-                    ) 
+                    it.copy(isLoading = false, grupos = it.grupos + grupo, grupoActual = grupo) 
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
@@ -86,11 +88,7 @@ class GastosViewModel(
             try {
                 repository.eliminarGrupo(grupoId)
                 _uiState.update { state ->
-                    state.copy(
-                        isLoading = false,
-                        grupos = state.grupos.filter { it.id != grupoId },
-                        grupoActual = null
-                    )
+                    state.copy(isLoading = false, grupos = state.grupos.filter { it.id != grupoId }, grupoActual = null)
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
@@ -117,7 +115,60 @@ class GastosViewModel(
         }
     }
 
-    fun limpiarError() {
-        _uiState.update { it.copy(error = null) }
+    fun agregarPersona(persona: String) {
+        val grupoId = _uiState.value.grupoActual?.id ?: return
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val grupoActualizado = repository.agregarPersona(grupoId, persona)
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        grupoActual = grupoActualizado,
+                        grupos = state.grupos.map { if (it.id == grupoId) grupoActualizado else it }
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    fun eliminarPersona(persona: String) {
+        val grupoId = _uiState.value.grupoActual?.id ?: return
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val grupoActualizado = repository.eliminarPersona(grupoId, persona)
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        grupoActual = grupoActualizado,
+                        grupos = state.grupos.map { if (it.id == grupoId) grupoActualizado else it }
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    fun editarGasto(gastoId: Int, nuevoMonto: Double) {
+        val grupoId = _uiState.value.grupoActual?.id ?: return
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val grupoActualizado = repository.editarGasto(grupoId, gastoId, nuevoMonto)
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        grupoActual = grupoActualizado,
+                        grupos = state.grupos.map { if (it.id == grupoId) grupoActualizado else it }
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
     }
 }

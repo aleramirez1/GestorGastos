@@ -61,6 +61,7 @@ fun RegistroScreen(
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
+            vm.resetState()
             onRegistroSuccess()
         }
     }

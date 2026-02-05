@@ -20,6 +20,7 @@ fun GrupoResponse.toDomain(): Grupo {
     return Grupo(
         id = id,
         nombre = nombre,
+        usuarioId = usuarioId,
         fechaCreacion = fechaCreacion,
         personas = personas,
         gastos = gastos.map { it.toDomain() }

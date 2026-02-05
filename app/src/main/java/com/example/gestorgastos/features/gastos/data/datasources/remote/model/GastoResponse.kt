@@ -4,7 +4,8 @@ import com.google.gson.annotations.SerializedName
 
 data class GrupoRequest(
     val nombre: String,
-    val personas: List<String>
+    val personas: List<String>,
+    val usuario_id: Int
 )
 
 data class GrupoUpdateRequest(
@@ -19,6 +20,10 @@ data class GastoCreateRequest(
     val tipo: String = "te_deben"
 )
 
+data class GastoEditRequest(
+    val monto: Double
+)
+
 data class GastoGrupoResponse(
     val id: Int,
     val persona: String,
@@ -31,6 +36,8 @@ data class GastoGrupoResponse(
 data class GrupoResponse(
     val id: Int,
     val nombre: String,
+    @SerializedName("usuario_id")
+    val usuarioId: Int,
     @SerializedName("fecha_creacion")
     val fechaCreacion: String,
     val personas: List<String>,

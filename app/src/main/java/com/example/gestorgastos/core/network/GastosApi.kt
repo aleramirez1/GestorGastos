@@ -2,6 +2,7 @@ package com.example.gestorgastos.core.network
 
 import com.example.gestorgastos.features.gastos.data.datasources.remote.model.AuthResponse
 import com.example.gestorgastos.features.gastos.data.datasources.remote.model.GastoCreateRequest
+import com.example.gestorgastos.features.gastos.data.datasources.remote.model.GastoEditRequest
 import com.example.gestorgastos.features.gastos.data.datasources.remote.model.GrupoRequest
 import com.example.gestorgastos.features.gastos.data.datasources.remote.model.GrupoResponse
 import com.example.gestorgastos.features.gastos.data.datasources.remote.model.GrupoUpdateRequest
@@ -25,8 +26,8 @@ interface GastosApi {
     @POST("grupos")
     suspend fun crearGrupo(@Body grupo: GrupoRequest): GrupoResponse
 
-    @GET("grupos")
-    suspend fun obtenerGrupos(): List<GrupoResponse>
+    @GET("grupos/usuario/{usuarioId}")
+    suspend fun obtenerGrupos(@Path("usuarioId") usuarioId: Int): List<GrupoResponse>
 
     @GET("grupos/{id}")
     suspend fun obtenerGrupo(@Path("id") id: Int): GrupoResponse
@@ -48,4 +49,7 @@ interface GastosApi {
 
     @DELETE("grupos/{id}/gastos/{gastoId}")
     suspend fun eliminarGasto(@Path("id") id: Int, @Path("gastoId") gastoId: Int): GrupoResponse
+
+    @PUT("grupos/{id}/gastos/{gastoId}")
+    suspend fun editarGasto(@Path("id") id: Int, @Path("gastoId") gastoId: Int, @Body gasto: GastoEditRequest): GrupoResponse
 }

@@ -12,17 +12,16 @@ class AuthRepositoryImpl(
     private val tokenManager: TokenManager
 ) : AuthRepository {
 
-    override suspend fun login(email: String, password: String): Usuario {
-        val response = api.login(LoginRequest(email, password))
+    override suspend fun login(nombre: String, password: String): Usuario {
+        val response = api.login(LoginRequest(nombre, password))
         tokenManager.saveToken(response.token)
         tokenManager.saveUserName(response.nombre)
+        tokenManager.saveUserId(response.id)
         return Usuario(response.id, response.nombre, response.email, response.token)
     }
 
     override suspend fun registro(nombre: String, email: String, password: String): Usuario {
         val response = api.registro(RegistroRequest(nombre, email, password))
-        tokenManager.saveToken(response.token)
-        tokenManager.saveUserName(response.nombre)
         return Usuario(response.id, response.nombre, response.email, response.token)
     }
 
