@@ -1,11 +1,15 @@
 package com.example.gestorgastos.features.gastos.domain.repositories
 
-import com.example.gestorgastos.features.gastos.domain.entities.Gasto
-import com.example.gestorgastos.features.gastos.domain.entities.ResumenGastos
+import com.example.gestorgastos.features.gastos.domain.entities.Grupo
 
 interface GastosRepository {
-    suspend fun crearGasto(monto: Double, descripcion: String, quienPago: String, tipo: String): Gasto
-    suspend fun obtenerGastos(): List<Gasto>
-    suspend fun obtenerResumen(): ResumenGastos
-    suspend fun eliminarGasto(id: Int)
+    suspend fun crearGrupo(nombre: String, personas: List<String>): Grupo
+    suspend fun obtenerGrupos(): List<Grupo>
+    suspend fun obtenerGrupo(id: Int): Grupo
+    suspend fun actualizarGrupo(id: Int, nombre: String?, personas: List<String>?): Grupo
+    suspend fun eliminarGrupo(id: Int)
+    suspend fun agregarPersona(grupoId: Int, persona: String): Grupo
+    suspend fun eliminarPersona(grupoId: Int, persona: String): Grupo
+    suspend fun agregarGasto(grupoId: Int, persona: String, monto: Double, descripcion: String, tipo: String): Grupo
+    suspend fun eliminarGasto(grupoId: Int, gastoId: Int): Grupo
 }

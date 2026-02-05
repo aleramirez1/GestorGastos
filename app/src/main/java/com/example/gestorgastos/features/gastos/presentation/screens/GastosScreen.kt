@@ -16,18 +16,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,9 +63,7 @@ fun GastosScreen(factory: GastosViewModelFactory) {
     var currentScreen by remember { mutableStateOf("inicio") }
     var nombreGrupo by remember { mutableStateOf("") }
     var numPersonas by remember { mutableStateOf("") }
-    val personas = remember { mutableStateListOf<String>() }
-    val grupos = remember { mutableStateListOf<Pair<String, List<String>>>() }
-    var grupoSeleccionado by remember { mutableStateOf<Int?>(null) }
+    val personasInput = remember { mutableStateListOf<String>() }
 
     var montoTeDeben by remember { mutableStateOf("") }
     var descripcionTeDeben by remember { mutableStateOf("") }
@@ -121,39 +117,53 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                     )
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    if (grupos.isEmpty()) {
+                    if (state.isLoading) {
+                        CircularProgressIndicator(color = lightBlue)
+                    } else if (state.grupos.isEmpty()) {
                         Text(
                             text = "No tienes grupos aun",
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.Gray
                         )
                     } else {
-                        grupos.forEachIndexed { index, grupo ->
+                        state.grupos.forEach { grupo ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        grupoSeleccionado = index
-                                        personas.clear()
-                                        personas.addAll(grupo.second)
-                                        nombreGrupo = grupo.first
+                                        vm.seleccionarGrupo(grupo)
                                         currentScreen = "gastos"
                                     },
                                 colors = CardDefaults.cardColors(containerColor = lightBlue),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
-                                Column(modifier = Modifier.padding(20.dp)) {
-                                    Text(
-                                        text = grupo.first,
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = "${grupo.second.size} personas",
-                                        fontSize = 14.sp,
-                                        color = Color.White.copy(alpha = 0.8f)
-                                    )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(20.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = grupo.nombre,
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                        Text(
+                                            text = "${grupo.personas.size} personas",
+                                            fontSize = 14.sp,
+                                            color = Color.White.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                    IconButton(onClick = { vm.eliminarGrupo(grupo.id) }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = Color.White
+                                        )
+                                    }
                                 }
                             }
                             Spacer(modifier = Modifier.height(12.dp))
@@ -173,12 +183,17 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Generar grupo", fontSize = 16.sp)
                     }
+
+                    if (state.error != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(state.error ?: "", color = Color.Red)
+                    }
                 }
 
                 "crear_grupo" -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { currentScreen = "inicio" }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                            Icon(Icons.Default.ArrowBack, contentDescription = null)
                         }
                         Text(
                             text = "Crear Grupo",
@@ -187,11 +202,6 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                             color = darkBlue
                         )
                     }
-                    Text(
-                        text = "Ingresa los datos del grupo",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Gray
-                    )
                     Spacer(modifier = Modifier.height(30.dp))
 
                     Card(
@@ -236,8 +246,8 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                         onClick = {
                             val num = numPersonas.toIntOrNull() ?: 0
                             if (nombreGrupo.isNotBlank() && num > 0) {
-                                personas.clear()
-                                repeat(num) { personas.add("") }
+                                personasInput.clear()
+                                repeat(num) { personasInput.add("") }
                                 currentScreen = "agregar_personas"
                             }
                         },
@@ -254,7 +264,7 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                 "agregar_personas" -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { currentScreen = "crear_grupo" }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                            Icon(Icons.Default.ArrowBack, contentDescription = null)
                         }
                         Text(
                             text = nombreGrupo,
@@ -279,10 +289,10 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            personas.forEachIndexed { index, nombre ->
+                            personasInput.forEachIndexed { index, nombre ->
                                 TextField(
                                     value = nombre,
-                                    onValueChange = { personas[index] = it },
+                                    onValueChange = { personasInput[index] = it },
                                     label = { Text("Persona ${index + 1}") },
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = TextFieldDefaults.colors(
@@ -299,37 +309,52 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                     }
                     Spacer(modifier = Modifier.height(30.dp))
 
-                    Button(
-                        onClick = {
-                            val validPersonas = personas.filter { it.isNotBlank() }
-                            if (validPersonas.isNotEmpty()) {
-                                grupos.add(Pair(nombreGrupo, validPersonas.toList()))
-                                personas.clear()
-                                personas.addAll(validPersonas)
-                                grupoSeleccionado = grupos.size - 1
-                                currentScreen = "gastos"
-                                nombreGrupo = ""
-                                numPersonas = ""
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = lightBlue),
-                        shape = RoundedCornerShape(25.dp)
-                    ) {
-                        Text("Continuar", fontSize = 16.sp)
+                    if (state.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            color = lightBlue
+                        )
+                    } else {
+                        Button(
+                            onClick = {
+                                val validPersonas = personasInput.filter { it.isNotBlank() }
+                                if (validPersonas.isNotEmpty()) {
+                                    vm.crearGrupo(nombreGrupo, validPersonas)
+                                    currentScreen = "gastos"
+                                    nombreGrupo = ""
+                                    numPersonas = ""
+                                    personasInput.clear()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = lightBlue),
+                            shape = RoundedCornerShape(25.dp)
+                        ) {
+                            Text("Crear Grupo", fontSize = 16.sp)
+                        }
+                    }
+
+                    if (state.error != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(state.error ?: "", color = Color.Red)
                     }
                 }
 
                 "gastos" -> {
+                    val grupo = state.grupoActual
+                    if (grupo == null) {
+                        currentScreen = "inicio"
+                        return@Column
+                    }
+
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { currentScreen = "inicio" }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                            Icon(Icons.Default.ArrowBack, contentDescription = null)
                         }
                         Text(
-                            text = if (grupoSeleccionado != null && grupoSeleccionado!! < grupos.size) 
-                                grupos[grupoSeleccionado!!].first else nombreGrupo,
+                            text = grupo.nombre,
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = darkBlue
@@ -340,13 +365,6 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                     var tipoSeleccionado by remember { mutableStateOf<String?>(null) }
 
                     if (tipoSeleccionado == null) {
-                        Text(
-                            text = "Selecciona una opcion",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Gray
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -391,27 +409,46 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                         }
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        if (state.resumen != null && state.resumen!!.deudas.isNotEmpty()) {
+                        if (grupo.gastos.isNotEmpty()) {
                             Text(
-                                text = "Resumen de deudas",
+                                text = "Gastos registrados",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 18.sp,
                                 color = darkBlue
                             )
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            state.resumen!!.deudas.forEach { deuda ->
+                            grupo.gastos.forEach { gasto ->
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(vertical = 4.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (gasto.tipo == "te_deben") lightBlue.copy(alpha = 0.2f) else purple.copy(alpha = 0.2f)
+                                    ),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
-                                    Text(
-                                        text = deuda.descripcion,
-                                        modifier = Modifier.padding(16.dp)
-                                    )
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = if (gasto.tipo == "te_deben") "${gasto.persona} te debe" else "Debes a ${gasto.persona}",
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(text = "$${gasto.monto}")
+                                            if (gasto.descripcion.isNotBlank()) {
+                                                Text(text = gasto.descripcion, color = Color.Gray)
+                                            }
+                                        }
+                                        IconButton(onClick = { vm.eliminarGasto(gasto.id) }) {
+                                            Icon(Icons.Default.Delete, contentDescription = null)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -419,7 +456,7 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                     } else if (tipoSeleccionado == "te_deben") {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = { tipoSeleccionado = null }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                                Icon(Icons.Default.ArrowBack, contentDescription = null)
                             }
                             Text(
                                 text = "Te deben",
@@ -437,13 +474,13 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                         ) {
                             Column(modifier = Modifier.padding(20.dp)) {
                                 Text(
-                                    text = "${personas.size} personas",
+                                    text = "${grupo.personas.size} personas",
                                     fontSize = 16.sp,
                                     color = Color.Gray
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                personas.forEach { persona ->
+                                grupo.personas.forEach { persona ->
                                     Text(
                                         text = "• $persona",
                                         fontSize = 16.sp,
@@ -466,10 +503,10 @@ fun GastosScreen(factory: GastosViewModelFactory) {
 
                                 if (montoTeDeben.isNotBlank()) {
                                     val montoTotal = montoTeDeben.toDoubleOrNull() ?: 0.0
-                                    val montoPorPersona = montoTotal / personas.size
+                                    val montoPorPersona = montoTotal / grupo.personas.size
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "Cada uno te debe: $${String.format("%.2f", montoPorPersona)}",
+                                        text = "Cada uno te debe: ${String.format("%.2f", montoPorPersona)}",
                                         color = lightBlue,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -499,12 +536,13 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                                         onClick = {
                                             val montoTotal = montoTeDeben.toDoubleOrNull() ?: 0.0
                                             if (montoTotal > 0) {
-                                                val montoPorPersona = montoTotal / personas.size
-                                                personas.forEach { persona ->
-                                                    vm.crearGasto(montoPorPersona, descripcionTeDeben, persona, "te_deben")
+                                                val montoPorPersona = montoTotal / grupo.personas.size
+                                                grupo.personas.forEach { persona ->
+                                                    vm.agregarGasto(persona, montoPorPersona, descripcionTeDeben, "te_deben")
                                                 }
                                                 montoTeDeben = ""
                                                 descripcionTeDeben = ""
+                                                tipoSeleccionado = null
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -525,7 +563,7 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = { tipoSeleccionado = null }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                                Icon(Icons.Default.ArrowBack, contentDescription = null)
                             }
                             Text(
                                 text = "Tu debes",
@@ -565,7 +603,7 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                                         expanded = expandedTuDebes,
                                         onDismissRequest = { expandedTuDebes = false }
                                     ) {
-                                        personas.forEach { persona ->
+                                        grupo.personas.forEach { persona ->
                                             DropdownMenuItem(
                                                 text = { Text(persona) },
                                                 onClick = {
@@ -614,10 +652,11 @@ fun GastosScreen(factory: GastosViewModelFactory) {
                                         onClick = {
                                             val m = montoTuDebes.toDoubleOrNull() ?: 0.0
                                             if (m > 0 && personaTuDebes.isNotBlank()) {
-                                                vm.crearGasto(m, descripcionTuDebes, personaTuDebes, "tu_debes")
+                                                vm.agregarGasto(personaTuDebes, m, descripcionTuDebes, "tu_debes")
                                                 montoTuDebes = ""
                                                 descripcionTuDebes = ""
                                                 personaTuDebes = ""
+                                                tipoSeleccionado = null
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth().height(50.dp),

@@ -1,9 +1,7 @@
 package com.example.gestorgastos.features.gastos.di
 
 import com.example.gestorgastos.core.di.AppContainer
-import com.example.gestorgastos.features.gastos.domain.usecases.CrearGastoUseCase
 import com.example.gestorgastos.features.gastos.domain.usecases.LoginUseCase
-import com.example.gestorgastos.features.gastos.domain.usecases.ObtenerResumenUseCase
 import com.example.gestorgastos.features.gastos.domain.usecases.RegistroUseCase
 import com.example.gestorgastos.features.gastos.presentation.viewmodels.AuthViewModelFactory
 import com.example.gestorgastos.features.gastos.presentation.viewmodels.GastosViewModelFactory
@@ -18,10 +16,7 @@ class GastosModule(private val appContainer: AppContainer) {
     }
 
     fun provideGastosViewModelFactory(): GastosViewModelFactory {
-        return GastosViewModelFactory(
-            CrearGastoUseCase(appContainer.gastosRepository),
-            ObtenerResumenUseCase(appContainer.gastosRepository)
-        )
+        return GastosViewModelFactory(appContainer.gastosRepository)
     }
 
     fun isLoggedIn(): Boolean {

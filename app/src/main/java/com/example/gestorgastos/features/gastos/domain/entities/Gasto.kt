@@ -1,23 +1,18 @@
 package com.example.gestorgastos.features.gastos.domain.entities
 
-data class Gasto(
+data class GastoGrupo(
     val id: Int,
+    val persona: String,
     val monto: Double,
     val descripcion: String,
-    val quienPago: String,
+    val tipo: String,
     val fecha: String
 )
 
-data class ResumenGastos(
-    val totalGastado: Double,
-    val montoPorPersona: Double,
-    val numPersonas: Int,
+data class Grupo(
+    val id: Int,
+    val nombre: String,
+    val fechaCreacion: String,
     val personas: List<String>,
-    val deudas: List<Deuda>
-)
-
-data class Deuda(
-    val persona: String,
-    val debe: Double,
-    val descripcion: String
+    val gastos: List<GastoGrupo>
 )

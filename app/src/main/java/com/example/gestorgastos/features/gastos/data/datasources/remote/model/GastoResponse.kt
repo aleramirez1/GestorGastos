@@ -2,36 +2,37 @@ package com.example.gestorgastos.features.gastos.data.datasources.remote.model
 
 import com.google.gson.annotations.SerializedName
 
-data class GastoRequest(
-    val monto: Double,
-    val descripcion: String,
-    @SerializedName("quien_pago")
-    val quienPago: String,
-    val tipo: String
+data class GrupoRequest(
+    val nombre: String,
+    val personas: List<String>
 )
 
-data class GastoResponse(
+data class GrupoUpdateRequest(
+    val nombre: String? = null,
+    val personas: List<String>? = null
+)
+
+data class GastoCreateRequest(
+    val persona: String,
+    val monto: Double,
+    val descripcion: String = "",
+    val tipo: String = "te_deben"
+)
+
+data class GastoGrupoResponse(
     val id: Int,
+    val persona: String,
     val monto: Double,
     val descripcion: String,
-    @SerializedName("quien_pago")
-    val quienPago: String,
+    val tipo: String,
     val fecha: String
 )
 
-data class ResumenResponse(
-    @SerializedName("total_gastado")
-    val totalGastado: Double,
-    @SerializedName("monto_por_persona")
-    val montoPorPersona: Double,
-    @SerializedName("num_personas")
-    val numPersonas: Int,
+data class GrupoResponse(
+    val id: Int,
+    val nombre: String,
+    @SerializedName("fecha_creacion")
+    val fechaCreacion: String,
     val personas: List<String>,
-    val deudas: List<DeudaResponse>
-)
-
-data class DeudaResponse(
-    val persona: String,
-    val debe: Double,
-    val descripcion: String
+    val gastos: List<GastoGrupoResponse>
 )
