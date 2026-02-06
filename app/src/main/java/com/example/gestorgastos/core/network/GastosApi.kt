@@ -1,13 +1,14 @@
 package com.example.gestorgastos.core.network
 
-import com.example.gestorgastos.features.gastos.data.datasources.remote.model.AuthResponse
-import com.example.gestorgastos.features.gastos.data.datasources.remote.model.GastoCreateRequest
-import com.example.gestorgastos.features.gastos.data.datasources.remote.model.GastoEditRequest
-import com.example.gestorgastos.features.gastos.data.datasources.remote.model.GrupoRequest
-import com.example.gestorgastos.features.gastos.data.datasources.remote.model.GrupoResponse
-import com.example.gestorgastos.features.gastos.data.datasources.remote.model.GrupoUpdateRequest
-import com.example.gestorgastos.features.gastos.data.datasources.remote.model.LoginRequest
-import com.example.gestorgastos.features.gastos.data.datasources.remote.model.RegistroRequest
+import com.example.gestorgastos.features.grupos.data.datasources.remote.model.GastoCreateRequest
+import com.example.gestorgastos.features.grupos.data.datasources.remote.model.GastoEditRequest
+import com.example.gestorgastos.features.grupos.data.datasources.remote.model.GrupoRequest
+import com.example.gestorgastos.features.grupos.data.datasources.remote.model.GrupoResponse
+import com.example.gestorgastos.features.grupos.data.datasources.remote.model.GrupoUpdateRequest
+import com.example.gestorgastos.features.login.data.datasources.remote.model.LoginRequest
+import com.example.gestorgastos.features.login.data.datasources.remote.model.LoginResponse
+import com.example.gestorgastos.features.registro.data.datasources.remote.model.RegistroRequest
+import com.example.gestorgastos.features.registro.data.datasources.remote.model.RegistroResponse
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -18,10 +19,10 @@ import retrofit2.http.Path
 interface GastosApi {
 
     @POST("auth/login")
-    suspend fun login(@Body request: LoginRequest): AuthResponse
+    suspend fun login(@Body request: LoginRequest): LoginResponse
 
     @POST("auth/registro")
-    suspend fun registro(@Body request: RegistroRequest): AuthResponse
+    suspend fun registro(@Body request: RegistroRequest): RegistroResponse
 
     @POST("grupos")
     suspend fun crearGrupo(@Body grupo: GrupoRequest): GrupoResponse

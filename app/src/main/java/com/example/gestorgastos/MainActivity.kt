@@ -4,16 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.example.gestorgastos.core.theme.GestorGastosTheme
-import com.example.gestorgastos.features.gastos.di.GastosModule
-import com.example.gestorgastos.features.gastos.presentation.screens.GastosScreen
-import com.example.gestorgastos.features.gastos.presentation.screens.LoginScreen
-import com.example.gestorgastos.features.gastos.presentation.screens.RegistroScreen
+import com.example.gestorgastos.core.navigation.NavigationWrapper
+import com.example.gestorgastos.core.ui.theme.GestorGastosTheme
+import com.example.gestorgastos.features.grupos.di.GruposModule
+import com.example.gestorgastos.features.grupos.navigation.GruposNavGraph
+import com.example.gestorgastos.features.login.di.LoginModule
+import com.example.gestorgastos.features.login.navigation.LoginNavGraph
+import com.example.gestorgastos.features.registro.di.RegistroModule
+import com.example.gestorgastos.features.registro.navigation.RegistroNavGraph
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,35 +19,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val appContainer = (application as GestorGastosApplication).appContainer
-        val gastosModule = GastosModule(appContainer)
+        val loginModule = LoginModule(appContainer)
+        val registroModule = RegistroModule(appContainer)
+        val gruposModule = GruposModule(appContainer)
+
+        val navGraphs = listOf(
+            LoginNavGraph(loginModule),
+            RegistroNavGraph(registroModule),
+            GruposNavGraph(gruposModule, appContainer.tokenManager)
+        )
 
         setContent {
             GestorGastosTheme {
-                var screen by remember { mutableStateOf("login") }
-                var sessionKey by remember { mutableIntStateOf(0) }
-
-                when (screen) {
-                    "login" -> LoginScreen(
-                        key = sessionKey,
-                        factory = gastosModule.provideAuthViewModelFactory(),
-                        onLoginSuccess = { screen = "gastos" },
-                        onGoToRegistro = { screen = "registro" }
-                    )
-                    "registro" -> RegistroScreen(
-                        factory = gastosModule.provideAuthViewModelFactory(),
-                        onRegistroSuccess = { screen = "login" },
-                        onGoToLogin = { screen = "login" }
-                    )
-                    "gastos" -> GastosScreen(
-                        key = sessionKey,
-                        factory = gastosModule.provideGastosViewModelFactory(),
-                        onLogout = {
-                            appContainer.tokenManager.clearAll()
-                            sessionKey++
-                            screen = "login"
-                        }
-                    )
-                }
+                NavigationWrapper(navGraphs)
             }
         }
     }
