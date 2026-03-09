@@ -6,5 +6,7 @@ data class GruposUiState(
     val isLoading: Boolean = false,
     val grupos: List<Grupo> = emptyList(),
     val grupoActual: Grupo? = null,
-    val error: String? = null
+    val error: String? = null,
+    val fotoGastoUri: String? = null,
+    val ganadorRuleta: String? = null
 )

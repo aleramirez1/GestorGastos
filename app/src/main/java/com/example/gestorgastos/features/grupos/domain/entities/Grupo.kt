@@ -15,5 +15,7 @@ data class Grupo(
     val usuarioId: Int,
     val fechaCreacion: String,
     val personas: List<String>,
-    val gastos: List<GastoGrupo>
+    val gastos: List<GastoGrupo>,
+    val fotoTicketUri: String? = null,
+    val ganadorRuleta: String? = null
 )

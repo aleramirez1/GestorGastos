@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import com.example.gestorgastos.core.navigation.FeatureNavGraph
 import com.example.gestorgastos.core.navigation.Grupos
 import com.example.gestorgastos.core.navigation.Login
+import com.example.gestorgastos.core.navigation.Personas
 import com.example.gestorgastos.core.navigation.Registro
 import com.example.gestorgastos.features.login.di.LoginModule
 import com.example.gestorgastos.features.login.presentation.screens.LoginScreen

@@ -16,15 +16,15 @@ class RegistroViewModel(private val registroUseCase: RegistroUseCase) : ViewMode
 
     fun registro(nombre: String, email: String, password: String) {
         _uiState.update { it.copy(isLoading = true, error = null) }
-        viewModelScope.launch {
-            val result = registroUseCase(nombre, email, password)
-            _uiState.update { currentState ->
-                result.fold(
-                    onSuccess = { currentState.copy(isLoading = false, isSuccess = true) },
-                    onFailure = { currentState.copy(isLoading = false, error = it.message) }
-                )
-            }
+        
+        // Permitir registro con cualquier dato (modo offline)
+        if (nombre.isNotBlank() && email.isNotBlank() && password.isNotBlank()) {
+            _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+            return
         }
+        
+        // Si hay campos vacíos, mostrar error
+        _uiState.update { it.copy(isLoading = false, error = "Todos los campos son requeridos") }
     }
 
     fun resetState() {

@@ -13,4 +13,8 @@ interface GruposRepository {
     suspend fun agregarGasto(grupoId: Int, persona: String, monto: Double, descripcion: String, tipo: String): Grupo
     suspend fun eliminarGasto(grupoId: Int, gastoId: Int): Grupo
     suspend fun editarGasto(grupoId: Int, gastoId: Int, nuevoMonto: Double): Grupo
+    
+    suspend fun guardarGrupoLocal(grupo: Grupo)
+    suspend fun obtenerGruposLocales(usuarioId: Int): List<Grupo>
+    suspend fun actualizarGrupoLocal(grupo: Grupo)
 }

@@ -11,6 +11,12 @@ class LoginModule(private val appContainer: AppContainer) {
     }
 
     fun provideLoginViewModelFactory(): LoginViewModelFactory {
-        return LoginViewModelFactory(provideLoginUseCase())
+        return LoginViewModelFactory(
+            provideLoginUseCase(), 
+            appContainer.tokenManager,
+            appContainer.rotationManager,
+            appContainer.activityManager,
+            appContainer.context
+        )
     }
 }
