@@ -18,9 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.gestorgastos.features.registro.presentation.viewmodels.RegistroViewModel
-
+import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
-fun RegistroScreen(viewModel: RegistroViewModel, onRegistroSuccess: () -> Unit, onGoToLogin: () -> Unit) {
+fun RegistroScreen(viewModel: RegistroViewModel = hiltViewModel(), onRegistroSuccess: () -> Unit, onGoToLogin: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }

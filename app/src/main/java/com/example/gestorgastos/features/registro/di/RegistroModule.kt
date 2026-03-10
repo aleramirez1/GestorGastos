@@ -1,16 +1,20 @@
 package com.example.gestorgastos.features.registro.di
 
-import com.example.gestorgastos.core.di.AppContainer
-import com.example.gestorgastos.features.registro.domain.usecases.RegistroUseCase
-import com.example.gestorgastos.features.registro.presentation.viewmodels.RegistroViewModelFactory
+import com.example.gestorgastos.features.registro.data.repositories.RegistroRepositoryImpl
+import com.example.gestorgastos.features.registro.domain.repositories.RegistroRepository
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
-class RegistroModule(private val appContainer: AppContainer) {
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RegistroModule {
 
-    private fun provideRegistroUseCase(): RegistroUseCase {
-        return RegistroUseCase(appContainer.registroRepository)
-    }
-
-    fun provideRegistroViewModelFactory(): RegistroViewModelFactory {
-        return RegistroViewModelFactory(provideRegistroUseCase())
-    }
+    @Binds
+    @Singleton
+    abstract fun bindRegistroRepository(
+        registroRepositoryImpl: RegistroRepositoryImpl
+    ): RegistroRepository
 }

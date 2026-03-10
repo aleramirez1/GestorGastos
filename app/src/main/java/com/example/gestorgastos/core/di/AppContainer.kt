@@ -22,17 +22,13 @@ import com.example.gestorgastos.features.registro.data.repositories.RegistroRepo
 import com.example.gestorgastos.features.registro.domain.repositories.RegistroRepository
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import okhttp3.logging.HttpLoggingInterceptor
+import okhttp3.OkHttpClient
 
 class AppContainer(context: Context) {
 
     val context: Context = context.applicationContext
 
-    private val retrofit: Retrofit by lazy {
-        Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:8000/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
 
     private val gastosApi: GastosApi by lazy {
         retrofit.create(GastosApi::class.java)
@@ -44,6 +40,24 @@ class AppContainer(context: Context) {
             GastosDatabase::class.java,
             "gestor_gastos_db"
         ).build()
+    }
+
+    private val retrofit: Retrofit by lazy {
+        // 1. Creamos un interceptor para ver los logs
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        // 2. Creamos el cliente que usará el interceptor
+        val client = OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .build()
+
+        Retrofit.Builder()
+            .baseUrl("https://api-gastos.freedynamicdns.net/")
+            .client(client) // <--- OJO: No olvides asignar el cliente
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
     }
 
     private val grupoDao: GrupoDao by lazy {
@@ -81,4 +95,5 @@ class AppContainer(context: Context) {
     val activityManager: ActivityManager by lazy {
         AndroidActivityManager()
     }
+
 }
