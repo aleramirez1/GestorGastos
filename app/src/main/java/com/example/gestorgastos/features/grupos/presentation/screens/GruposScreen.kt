@@ -19,25 +19,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.gestorgastos.R
 import com.example.gestorgastos.features.grupos.domain.entities.Grupo
 import com.example.gestorgastos.features.grupos.presentation.viewmodels.GruposViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GruposScreen(
-    viewModel: GruposViewModel? = null,
+    viewModel: GruposViewModel = hiltViewModel(),
     onLogout: () -> Unit,
     onNavigateToRuleta: (List<String>, Int) -> Unit = { _, _ -> },
     onNavigateToVerGanadores: () -> Unit = {}
 ) {
-    // Usar el ViewModel pasado o intentar obtenerlo de Hilt
-    val vm: GruposViewModel = viewModel ?: hiltViewModel()
-    val state by vm.uiState.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var currentScreen by remember { mutableStateOf("inicio") }
     var nombreGrupo by remember { mutableStateOf("") }
     var numPersonas by remember { mutableStateOf("") }
@@ -55,25 +55,8 @@ fun GruposScreen(
     val purple = Color(0xFF7E57C2)
     val bgColor = Color(0xFFE3F2FD)
     
-    // Guardar la pantalla actual antes de ir a la ruleta
     var screenBeforeRuleta by remember { mutableStateOf<String?>(null) }
     
-    // Obtener el ganador de la ruleta desde savedStateHandle
-    val navController = androidx.navigation.compose.rememberNavController()
-    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    
-    LaunchedEffect(savedStateHandle) {
-        savedStateHandle?.getLiveData<String>("ganadorRuleta")?.observeForever { ganador ->
-            if (ganador != null) {
-                vm.setGanadorRuleta(ganador)
-                savedStateHandle.remove<String>("ganadorRuleta")
-                // Restaurar la pantalla donde estábamos
-                screenBeforeRuleta?.let { currentScreen = it }
-            }
-        }
-    }
-    
-    // Wrapper para onNavigateToRuleta que guarda la pantalla actual
     val navigateToRuletaWrapper: (List<String>, Int) -> Unit = { participantes, grupoId ->
         screenBeforeRuleta = currentScreen
         onNavigateToRuleta(participantes, grupoId)
@@ -85,32 +68,33 @@ fun GruposScreen(
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
             Spacer(modifier = Modifier.height(100.dp))
             when (currentScreen) {
-                "inicio" -> InicioScreen(state, vm, darkBlue, lightBlue, onLogout, { currentScreen = it }, onNavigateToVerGanadores)
-                "crear_grupo" -> CrearGrupoScreen(nombreGrupo, { nombreGrupo = it }, numPersonas, { numPersonas = it }, darkBlue, lightBlue, personasInput, vm, { fotoTicketUri = it }, { currentScreen = it }, navigateToRuletaWrapper)
+                "inicio" -> InicioScreen(state, viewModel, darkBlue, lightBlue, onLogout, { currentScreen = it }, onNavigateToVerGanadores)
+                "crear_grupo" -> CrearGrupoScreen(nombreGrupo, { nombreGrupo = it }, numPersonas, { numPersonas = it }, darkBlue, lightBlue, personasInput, viewModel, { fotoTicketUri = it }, { currentScreen = it }, navigateToRuletaWrapper)
                 "agregar_personas" -> AgregarPersonasScreen(nombreGrupo, personasInput, state, darkBlue, lightBlue) { currentScreen = it }
-                "agregar_gasto_inicial" -> AgregarGastoInicialScreen(nombreGrupo, personasInput, montoTeDeben, { montoTeDeben = it }, descripcionTeDeben, { descripcionTeDeben = it }, state, vm, darkBlue, lightBlue, purple, { nombreGrupo = "" }, { numPersonas = "" }, fotoTicketUri, { currentScreen = it }, navigateToRuletaWrapper)
-                "editar_grupo" -> EditarGrupoScreen(state, vm, nuevaPersona, { nuevaPersona = it }, darkBlue, lightBlue, purple) { currentScreen = it }
-                "gastos" -> GastosDetailScreen(state, vm, montoTeDeben, { montoTeDeben = it }, descripcionTeDeben, { descripcionTeDeben = it }, montoTuDebes, { montoTuDebes = it }, descripcionTuDebes, { descripcionTuDebes = it }, personaTuDebes, { personaTuDebes = it }, expandedTuDebes, { expandedTuDebes = it }, darkBlue, lightBlue, purple) { currentScreen = it }
+                "agregar_gasto_inicial" -> AgregarGastoInicialScreen(nombreGrupo, personasInput, montoTeDeben, { montoTeDeben = it }, descripcionTeDeben, { descripcionTeDeben = it }, state, viewModel, darkBlue, lightBlue, purple, { nombreGrupo = "" }, { numPersonas = "" }, fotoTicketUri, { currentScreen = it }, navigateToRuletaWrapper)
+                "editar_grupo" -> EditarGrupoScreen(state, viewModel, nuevaPersona, { nuevaPersona = it }, darkBlue, lightBlue, purple) { currentScreen = it }
+                "gastos" -> GastosDetailScreen(state, viewModel, montoTeDeben, { montoTeDeben = it }, descripcionTeDeben, { descripcionTeDeben = it }, montoTuDebes, { montoTuDebes = it }, descripcionTuDebes, { descripcionTuDebes = it }, personaTuDebes, { personaTuDebes = it }, expandedTuDebes, { expandedTuDebes = it }, darkBlue, lightBlue, purple) { currentScreen = it }
             }
         }
     }
 }
+
 @Composable
 private fun InicioScreen(state: GruposUiState, vm: GruposViewModel, darkBlue: Color, lightBlue: Color, onLogout: () -> Unit, navigate: (String) -> Unit, onNavigateToVerGanadores: () -> Unit = {}) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onLogout) { Icon(Icons.Default.ArrowBack, contentDescription = null, tint = darkBlue) }
-        Text(text = "Mis Grupos", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = darkBlue)
+        Text(text = stringResource(R.string.grupos_titulo), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = darkBlue)
     }
     Spacer(modifier = Modifier.height(24.dp))
     if (state.isLoading) { CircularProgressIndicator(color = lightBlue) }
-    else if (state.grupos.isEmpty()) { Text(text = "No tienes grupos aun", style = MaterialTheme.typography.bodyLarge, color = Color.Gray) }
+    else if (state.grupos.isEmpty()) { Text(text = stringResource(R.string.grupos_no_grupos), style = MaterialTheme.typography.bodyLarge, color = Color.Gray) }
     else {
         state.grupos.forEach { grupo ->
             Card(modifier = Modifier.fillMaxWidth().clickable { vm.seleccionarGrupo(grupo); navigate("gastos") }, colors = CardDefaults.cardColors(containerColor = lightBlue), shape = RoundedCornerShape(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(text = grupo.nombre, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text(text = grupo.personas.size.toString() + " personas", fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text(text = stringResource(R.string.grupos_personas_count, grupo.personas.size), fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
                     }
                     IconButton(onClick = { vm.seleccionarGrupo(grupo); navigate("editar_grupo") }) { Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White) }
                     IconButton(onClick = { vm.eliminarGrupo(grupo.id) }) { Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White) }
@@ -121,11 +105,11 @@ private fun InicioScreen(state: GruposUiState, vm: GruposViewModel, darkBlue: Co
     }
     Spacer(modifier = Modifier.height(24.dp))
     Button(onClick = { navigate("crear_grupo") }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = darkBlue), shape = RoundedCornerShape(25.dp)) {
-        Icon(Icons.Default.Add, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Generar grupo", fontSize = 16.sp)
+        Icon(Icons.Default.Add, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text(stringResource(R.string.grupos_btn_generar), fontSize = 16.sp)
     }
     Spacer(modifier = Modifier.height(12.dp))
     Button(onClick = onNavigateToVerGanadores, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD54F)), shape = RoundedCornerShape(25.dp)) {
-        Text("Personas", fontSize = 16.sp, color = Color(0xFF5C6BC0), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.grupos_btn_personas), fontSize = 16.sp, color = Color(0xFF5C6BC0), fontWeight = FontWeight.Bold)
     }
     if (state.error != null) { Spacer(modifier = Modifier.height(8.dp)); Text(state.error ?: "", color = Color.Red) }
 }
@@ -148,28 +132,23 @@ private fun CrearGrupoScreen(
     var fotoCaptured by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
     
-    // Launcher para la cámara
     val cameraLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && fotoUri != null) {
-            // Foto capturada exitosamente
             fotoCaptured = true
             onFotoUriChange(fotoUri.toString())
         } else {
-            // No se capturó la foto
             fotoCaptured = false
             fotoUri = null
             onFotoUriChange(null)
         }
     }
     
-    // Launcher para permisos
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            // Permiso concedido, abrir cámara
             val photoFile = java.io.File.createTempFile(
                 "gasto_${System.currentTimeMillis()}",
                 ".jpg",
@@ -188,24 +167,22 @@ private fun CrearGrupoScreen(
     
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { navigate("inicio") }) { Icon(Icons.Default.ArrowBack, contentDescription = null) }
-        Text(text = "Crear Grupo", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = darkBlue)
+        Text(text = stringResource(R.string.grupos_crear_titulo), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = darkBlue)
     }
     Spacer(modifier = Modifier.height(30.dp))
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(20.dp)) {
-            TextField(value = nombreGrupo, onValueChange = onNombreChange, label = { Text("Nombre del grupo") }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5), focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent), shape = RoundedCornerShape(12.dp))
+            TextField(value = nombreGrupo, onValueChange = onNombreChange, label = { Text(stringResource(R.string.grupos_label_nombre)) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5), focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent), shape = RoundedCornerShape(12.dp))
             Spacer(modifier = Modifier.height(16.dp))
-            TextField(value = numPersonas, onValueChange = onNumChange, label = { Text("Cuantas personas") }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5), focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent), shape = RoundedCornerShape(12.dp))
+            TextField(value = numPersonas, onValueChange = onNumChange, label = { Text(stringResource(R.string.grupos_label_cuantas_personas)) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5), focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent), shape = RoundedCornerShape(12.dp))
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = { 
-                    // Verificar y solicitar permiso de cámara
                     val permission = android.Manifest.permission.CAMERA
                     when {
                         androidx.core.content.ContextCompat.checkSelfPermission(
                             context, permission
                         ) == android.content.pm.PackageManager.PERMISSION_GRANTED -> {
-                            // Permiso ya concedido, abrir cámara
                             val photoFile = java.io.File.createTempFile(
                                 "gasto_${System.currentTimeMillis()}",
                                 ".jpg",
@@ -221,7 +198,6 @@ private fun CrearGrupoScreen(
                             cameraLauncher.launch(uri)
                         }
                         else -> {
-                            // Solicitar permiso
                             permissionLauncher.launch(permission)
                         }
                     }
@@ -232,10 +208,9 @@ private fun CrearGrupoScreen(
             ) { 
                 Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Abrir cámara para mostrar el ticket", fontSize = 14.sp) 
+                Text(stringResource(R.string.grupos_btn_camara), fontSize = 14.sp) 
             }
             
-            // Mostrar foto capturada
             if (fotoCaptured && fotoUri != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(
@@ -255,8 +230,8 @@ private fun CrearGrupoScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("✓ Foto del ticket guardada", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("Se adjuntará al grupo", color = Color(0xFF558B2F), fontSize = 12.sp)
+                            Text(stringResource(R.string.grupos_foto_ticket_success), color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(stringResource(R.string.grupos_foto_ticket_desc), color = Color(0xFF558B2F), fontSize = 12.sp)
                         }
                     }
                 }
@@ -264,7 +239,7 @@ private fun CrearGrupoScreen(
         }
     }
     Spacer(modifier = Modifier.height(30.dp))
-    Button(onClick = { val num = numPersonas.toIntOrNull() ?: 0; if (nombreGrupo.isNotBlank() && num > 0) { personasInput.clear(); repeat(num) { personasInput.add("") }; navigate("agregar_personas") } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Text("Continuar", fontSize = 16.sp) }
+    Button(onClick = { val num = numPersonas.toIntOrNull() ?: 0; if (nombreGrupo.isNotBlank() && num > 0) { personasInput.clear(); repeat(num) { personasInput.add("") }; navigate("agregar_personas") } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Text(stringResource(R.string.grupos_btn_continuar), fontSize = 16.sp) }
 }
 
 @Composable
@@ -274,15 +249,25 @@ private fun AgregarPersonasScreen(nombreGrupo: String, personasInput: MutableLis
         Text(text = nombreGrupo, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = darkBlue)
     }
     Spacer(modifier = Modifier.height(16.dp))
-    Text(text = "Agregar Participantes", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = darkBlue)
+    Text(text = stringResource(R.string.grupos_agregar_participantes), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = darkBlue)
     Spacer(modifier = Modifier.height(24.dp))
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(20.dp)) {
-            personasInput.forEachIndexed { index, nombre -> TextField(value = nombre, onValueChange = { personasInput[index] = it }, label = { Text("Persona " + (index + 1).toString()) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5), focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent), shape = RoundedCornerShape(12.dp)); Spacer(modifier = Modifier.height(12.dp)) }
+            personasInput.forEachIndexed { index, nombre -> 
+                TextField(
+                    value = nombre, 
+                    onValueChange = { personasInput[index] = it }, 
+                    label = { Text(stringResource(R.string.grupos_label_persona_n, index + 1)) }, 
+                    modifier = Modifier.fillMaxWidth(), 
+                    colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5), focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent), 
+                    shape = RoundedCornerShape(12.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp)) 
+            }
         }
     }
     Spacer(modifier = Modifier.height(30.dp))
-    Button(onClick = { val validPersonas = personasInput.filter { it.isNotBlank() }; if (validPersonas.isNotEmpty()) { navigate("agregar_gasto_inicial") } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Text("Next", fontSize = 16.sp) }
+    Button(onClick = { val validPersonas = personasInput.filter { it.isNotBlank() }; if (validPersonas.isNotEmpty()) { navigate("agregar_gasto_inicial") } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Text(stringResource(R.string.grupos_btn_next), fontSize = 16.sp) }
     if (state.error != null) { Spacer(modifier = Modifier.height(8.dp)); Text(state.error ?: "", color = Color.Red) }
 }
 
@@ -296,39 +281,41 @@ private fun AgregarGastoInicialScreen(nombreGrupo: String, personasInput: Mutabl
         Text(text = nombreGrupo, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = darkBlue)
     }
     Spacer(modifier = Modifier.height(16.dp))
-    Text(text = "Agregar Gasto", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = darkBlue)
+    Text(text = stringResource(R.string.grupos_agregar_gasto), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = darkBlue)
     Spacer(modifier = Modifier.height(24.dp))
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text(text = validPersonas.size.toString() + " personas", fontSize = 16.sp, color = Color.Gray)
+            Text(text = stringResource(R.string.grupos_personas_count, validPersonas.size), fontSize = 16.sp, color = Color.Gray)
             Spacer(modifier = Modifier.height(8.dp))
             validPersonas.forEach { persona -> Text(text = persona, fontSize = 16.sp, color = darkBlue) }
             Spacer(modifier = Modifier.height(20.dp))
-            TextField(value = montoTeDeben, onValueChange = onMontoChange, label = { Text("Monto total") }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
-            if (montoTeDeben.isNotBlank()) { val montoTotal = montoTeDeben.toDoubleOrNull() ?: 0.0; val montoPorPersona = montoTotal / validPersonas.size; Spacer(modifier = Modifier.height(8.dp)); Text(text = "Cada uno te debe: $${String.format("%.2f", montoPorPersona)}", color = lightBlue, fontWeight = FontWeight.Bold) }
+            TextField(value = montoTeDeben, onValueChange = onMontoChange, label = { Text(stringResource(R.string.grupos_label_monto_total)) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
+            if (montoTeDeben.isNotBlank()) { 
+                val montoTotal = montoTeDeben.toDoubleOrNull() ?: 0.0
+                val montoPorPersona = montoTotal / validPersonas.size
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = stringResource(R.string.grupos_te_deben_calc, String.format("%.2f", montoPorPersona)), color = lightBlue, fontWeight = FontWeight.Bold) 
+            }
             Spacer(modifier = Modifier.height(16.dp))
-            TextField(value = descripcionTeDeben, onValueChange = onDescChange, label = { Text("Concepto") }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
+            TextField(value = descripcionTeDeben, onValueChange = onDescChange, label = { Text(stringResource(R.string.grupos_label_concepto)) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
         }
     }
     Spacer(modifier = Modifier.height(30.dp))
     
     if (state.isLoading) { CircularProgressIndicator(color = lightBlue) }
     else {
-        // Botón para crear grupo
         Button(
             onClick = { 
-                // Crear el grupo primero
                 vm.crearGrupo(nombreGrupo, validPersonas, fotoTicketUri, null)
             }, 
             modifier = Modifier.fillMaxWidth().height(50.dp), 
             colors = ButtonDefaults.buttonColors(containerColor = darkBlue), 
             shape = RoundedCornerShape(25.dp)
         ) { 
-            Text("Crear Grupo", fontSize = 16.sp) 
+            Text(stringResource(R.string.grupos_btn_crear_grupo), fontSize = 16.sp) 
         }
     }
     
-    // Navegar a la ruleta cuando se crea el grupo
     LaunchedEffect(state.grupoActual) {
         if (state.grupoActual != null && state.grupoActual!!.nombre == nombreGrupo && !grupoCreado) {
             grupoCreado = true
@@ -339,7 +326,6 @@ private fun AgregarGastoInicialScreen(nombreGrupo: String, personasInput: Mutabl
                     vm.agregarGasto(persona, montoPorPersona, descripcionTeDeben, "te_deben") 
                 } 
             }
-            // Navegar a la ruleta con el ID del grupo creado
             onNavigateToRuleta(validPersonas, state.grupoActual!!.id)
         }
     }
@@ -356,10 +342,10 @@ private fun EditarGrupoScreen(state: GruposUiState, vm: GruposViewModel, nuevaPe
     var descripcionGasto by remember { mutableStateOf("") }
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { navigate("inicio") }) { Icon(Icons.Default.ArrowBack, contentDescription = null) }
-        Text(text = "Editar " + grupo.nombre, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = darkBlue)
+        Text(text = stringResource(R.string.grupos_editar_titulo, grupo.nombre), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = darkBlue)
     }
     Spacer(modifier = Modifier.height(24.dp))
-    Text(text = "Personas del grupo", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = darkBlue)
+    Text(text = stringResource(R.string.grupos_personas_del_grupo), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = darkBlue)
     Spacer(modifier = Modifier.height(12.dp))
     grupo.personas.forEach { persona ->
         Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(12.dp)) {
@@ -371,34 +357,39 @@ private fun EditarGrupoScreen(state: GruposUiState, vm: GruposViewModel, nuevaPe
     }
     Spacer(modifier = Modifier.height(24.dp))
     if (!mostrarInputPersona) {
-        Button(onClick = { mostrarInputPersona = true }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Icon(Icons.Default.Add, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Agregar persona", fontSize = 16.sp) }
+        Button(onClick = { mostrarInputPersona = true }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Icon(Icons.Default.Add, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text(stringResource(R.string.grupos_btn_agregar_persona), fontSize = 16.sp) }
     } else {
-        Text(text = "Agregar persona", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = darkBlue)
+        Text(text = stringResource(R.string.grupos_btn_agregar_persona), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = darkBlue)
         Spacer(modifier = Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextField(value = nuevaPersona, onValueChange = onNuevaPersonaChange, label = { Text("Nombre") }, modifier = Modifier.weight(1f), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
+            TextField(value = nuevaPersona, onValueChange = onNuevaPersonaChange, label = { Text(stringResource(R.string.registro_nombre)) }, modifier = Modifier.weight(1f), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = { if (nuevaPersona.isNotBlank()) { vm.agregarPersona(nuevaPersona); onNuevaPersonaChange(""); mostrarInputPersona = false } }) { Icon(Icons.Default.Add, contentDescription = null, tint = lightBlue) }
         }
     }
     Spacer(modifier = Modifier.height(24.dp))
     if (!mostrarInputGasto) {
-        Button(onClick = { mostrarInputGasto = true }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = purple), shape = RoundedCornerShape(25.dp)) { Icon(Icons.Default.Add, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Agregar gasto", fontSize = 16.sp) }
+        Button(onClick = { mostrarInputGasto = true }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = purple), shape = RoundedCornerShape(25.dp)) { Icon(Icons.Default.Add, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text(stringResource(R.string.grupos_btn_agregar_gasto), fontSize = 16.sp) }
     } else {
-        Text(text = "Agregar gasto", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = darkBlue)
+        Text(text = stringResource(R.string.grupos_btn_agregar_gasto), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = darkBlue)
         Spacer(modifier = Modifier.height(12.dp))
         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text(text = grupo.personas.size.toString() + " personas", fontSize = 16.sp, color = Color.Gray)
+                Text(text = stringResource(R.string.grupos_personas_count, grupo.personas.size), fontSize = 16.sp, color = Color.Gray)
                 Spacer(modifier = Modifier.height(8.dp))
                 grupo.personas.forEach { persona -> Text(text = persona, fontSize = 16.sp, color = darkBlue) }
                 Spacer(modifier = Modifier.height(20.dp))
-                TextField(value = montoGasto, onValueChange = { montoGasto = it }, label = { Text("Monto total") }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
-                if (montoGasto.isNotBlank()) { val mt = montoGasto.toDoubleOrNull() ?: 0.0; val mp = mt / grupo.personas.size; Spacer(modifier = Modifier.height(8.dp)); Text(text = "Cada uno te debe: $${String.format("%.2f", mp)}", color = lightBlue, fontWeight = FontWeight.Bold) }
+                TextField(value = montoGasto, onValueChange = { montoGasto = it }, label = { Text(stringResource(R.string.grupos_label_monto_total)) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
+                if (montoGasto.isNotBlank()) { 
+                    val mt = montoGasto.toDoubleOrNull() ?: 0.0
+                    val mp = mt / grupo.personas.size
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = stringResource(R.string.grupos_te_deben_calc, String.format("%.2f", mp)), color = lightBlue, fontWeight = FontWeight.Bold) 
+                }
                 Spacer(modifier = Modifier.height(16.dp))
-                TextField(value = descripcionGasto, onValueChange = { descripcionGasto = it }, label = { Text("Concepto") }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
+                TextField(value = descripcionGasto, onValueChange = { descripcionGasto = it }, label = { Text(stringResource(R.string.grupos_label_concepto)) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
                 Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = { val mt = montoGasto.toDoubleOrNull() ?: 0.0; if (mt > 0) { val mp = mt / grupo.personas.size; grupo.personas.forEach { persona -> vm.agregarGasto(persona, mp, descripcionGasto, "te_deben") }; montoGasto = ""; descripcionGasto = ""; mostrarInputGasto = false } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Text("Registrar", fontSize = 16.sp) }
+                Button(onClick = { val mt = montoGasto.toDoubleOrNull() ?: 0.0; if (mt > 0) { val mp = mt / grupo.personas.size; grupo.personas.forEach { persona -> vm.agregarGasto(persona, mp, descripcionGasto, "te_deben") }; montoGasto = ""; descripcionGasto = ""; mostrarInputGasto = false } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Text(stringResource(R.string.grupos_label_registrar), fontSize = 16.sp) }
             }
         }
     }
@@ -417,34 +408,29 @@ private fun GastosDetailScreen(state: GruposUiState, vm: GruposViewModel, montoT
     Spacer(modifier = Modifier.height(24.dp))
     var tipoSeleccionado by remember { mutableStateOf<String?>(null) }
     if (tipoSeleccionado == null) {
-        Card(modifier = Modifier.fillMaxWidth().height(100.dp).clickable { tipoSeleccionado = "te_deben" }, colors = CardDefaults.cardColors(containerColor = lightBlue), shape = RoundedCornerShape(20.dp)) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text = "Te deben", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White) } }
+        Card(modifier = Modifier.fillMaxWidth().height(100.dp).clickable { tipoSeleccionado = "te_deben" }, colors = CardDefaults.cardColors(containerColor = lightBlue), shape = RoundedCornerShape(20.dp)) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text = stringResource(R.string.grupos_te_deben), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White) } }
         Spacer(modifier = Modifier.height(16.dp))
-        Card(modifier = Modifier.fillMaxWidth().height(100.dp).clickable { tipoSeleccionado = "tu_debes" }, colors = CardDefaults.cardColors(containerColor = purple), shape = RoundedCornerShape(20.dp)) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text = "Tu debes", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White) } }
+        Card(modifier = Modifier.fillMaxWidth().height(100.dp).clickable { tipoSeleccionado = "tu_debes" }, colors = CardDefaults.cardColors(containerColor = purple), shape = RoundedCornerShape(20.dp)) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text = stringResource(R.string.grupos_tu_debes), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White) } }
         Spacer(modifier = Modifier.height(32.dp))
         var gastoEditandoId by remember { mutableStateOf<Int?>(null) }
         var montoEditando by remember { mutableStateOf("") }
 
-
-
-
-
-        // PAGINACION DE GASTOS
         var paginaActual by remember { mutableStateOf(0) }
         val gastosPorPagina = 3
         val totalPaginas = if (grupo.gastos.isEmpty()) 1 else (grupo.gastos.size + gastosPorPagina - 1) / gastosPorPagina
-        // ==========================================
+        
         if (grupo.gastos.isNotEmpty()) {
-            Text(text = "Gastos registrados", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = darkBlue)
+            Text(text = stringResource(R.string.grupos_gastos_registrados), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = darkBlue)
             Spacer(modifier = Modifier.height(12.dp))
             val gastosEnPagina = grupo.gastos.drop(paginaActual * gastosPorPagina).take(gastosPorPagina)
             gastosEnPagina.forEach { gasto ->
                 Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = if (gasto.tipo == "te_deben") lightBlue.copy(alpha = 0.2f) else purple.copy(alpha = 0.2f)), shape = RoundedCornerShape(12.dp)) {
                     if (gastoEditandoId == gasto.id) {
                         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                            Text(text = if (gasto.tipo == "te_deben") gasto.persona + " te debe" else "Debes a " + gasto.persona, fontWeight = FontWeight.Bold)
+                            Text(text = if (gasto.tipo == "te_deben") stringResource(R.string.grupos_te_debe_formato, gasto.persona) else stringResource(R.string.grupos_debes_a_formato, gasto.persona), fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                TextField(value = montoEditando, onValueChange = { montoEditando = it }, label = { Text("Monto") }, modifier = Modifier.weight(1f), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(8.dp))
+                                TextField(value = montoEditando, onValueChange = { montoEditando = it }, label = { Text(stringResource(R.string.grupos_label_monto)) }, modifier = Modifier.weight(1f), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(8.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Button(onClick = { val nm = montoEditando.toDoubleOrNull(); if (nm != null && nm > 0) { vm.editarGasto(gasto.id, nm); gastoEditandoId = null; montoEditando = "" } }, colors = ButtonDefaults.buttonColors(containerColor = lightBlue)) { Text("OK") }
                             }
@@ -452,7 +438,7 @@ private fun GastosDetailScreen(state: GruposUiState, vm: GruposViewModel, montoT
                     } else {
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(text = if (gasto.tipo == "te_deben") gasto.persona + " te debe" else "Debes a " + gasto.persona, fontWeight = FontWeight.Bold)
+                                Text(text = if (gasto.tipo == "te_deben") stringResource(R.string.grupos_te_debe_formato, gasto.persona) else stringResource(R.string.grupos_debes_a_formato, gasto.persona), fontWeight = FontWeight.Bold)
                                 Text(text = gasto.monto.toString())
                                 if (gasto.descripcion.isNotBlank()) { Text(text = gasto.descripcion, color = Color.Gray) }
                             }
@@ -482,26 +468,30 @@ private fun GastosDetailScreen(state: GruposUiState, vm: GruposViewModel, montoT
 
 @Composable
 private fun TeDebenSection(grupo: Grupo, state: GruposUiState, vm: GruposViewModel, montoTeDeben: String, onMontoTeDebenChange: (String) -> Unit, descripcionTeDeben: String, onDescTeDebenChange: (String) -> Unit, darkBlue: Color, lightBlue: Color, onBack: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = null) }; Text(text = "Te deben", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = lightBlue) }
+    Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = null) }; Text(text = stringResource(R.string.grupos_te_deben), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = lightBlue) }
     Spacer(modifier = Modifier.height(20.dp))
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text(text = grupo.personas.size.toString() + " personas", fontSize = 16.sp, color = Color.Gray)
+            Text(text = stringResource(R.string.grupos_personas_count, grupo.personas.size), fontSize = 16.sp, color = Color.Gray)
             Spacer(modifier = Modifier.height(8.dp))
             grupo.personas.forEach { persona -> Text(text = persona, fontSize = 16.sp, color = darkBlue) }
             Spacer(modifier = Modifier.height(20.dp))
-            TextField(value = montoTeDeben, onValueChange = onMontoTeDebenChange, label = { Text("Monto total") }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
-            if (montoTeDeben.isNotBlank()) { val mt = montoTeDeben.toDoubleOrNull() ?: 0.0; val mp = mt / grupo.personas.size; Spacer(modifier = Modifier.height(8.dp)); Text(text = "Cada uno te debe: $${String.format("%.2f", mp)}", color = lightBlue, fontWeight = FontWeight.Bold) }
+            TextField(value = montoTeDeben, onValueChange = onMontoTeDebenChange, label = { Text(stringResource(R.string.grupos_label_monto_total)) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
+            if (montoTeDeben.isNotBlank()) { 
+                val mt = montoTeDeben.toDoubleOrNull() ?: 0.0
+                val mp = mt / grupo.personas.size
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = stringResource(R.string.grupos_te_deben_calc, String.format("%.2f", mp)), color = lightBlue, fontWeight = FontWeight.Bold) 
+            }
             Spacer(modifier = Modifier.height(16.dp))
-            TextField(value = descripcionTeDeben, onValueChange = onDescTeDebenChange, label = { Text("Por que") }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
+            TextField(value = descripcionTeDeben, onValueChange = onDescTeDebenChange, label = { Text(stringResource(R.string.grupos_label_porque)) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
             Spacer(modifier = Modifier.height(24.dp))
             if (state.isLoading) { CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = lightBlue) }
-            else { Button(onClick = { val mt = montoTeDeben.toDoubleOrNull() ?: 0.0; if (mt > 0) { val mp = mt / grupo.personas.size; grupo.personas.forEach { persona -> vm.agregarGasto(persona, mp, descripcionTeDeben, "te_deben") }; onMontoTeDebenChange(""); onDescTeDebenChange(""); onBack() } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Text("Registrar", fontSize = 16.sp) } }
+            else { Button(onClick = { val mt = montoTeDeben.toDoubleOrNull() ?: 0.0; if (mt > 0) { val mp = mt / grupo.personas.size; grupo.personas.forEach { persona -> vm.agregarGasto(persona, mp, descripcionTeDeben, "te_deben") }; onMontoTeDebenChange(""); onDescTeDebenChange(""); onBack() } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Text(stringResource(R.string.grupos_label_registrar), fontSize = 16.sp) } }
             
-            // Mostrar foto del ticket si existe
             if (grupo.fotoTicketUri != null) {
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(text = "Ticket del grupo", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = darkBlue)
+                Text(text = stringResource(R.string.grupos_ticket_del_grupo), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = darkBlue)
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth().height(200.dp),
@@ -514,7 +504,7 @@ private fun TeDebenSection(grupo: Grupo, state: GruposUiState, vm: GruposViewMod
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop
                     )
                 }
-                Text(text = "Foto guardada", color = Color.Gray, fontSize = 12.sp)
+                Text(text = stringResource(R.string.grupos_foto_guardada), color = Color.Gray, fontSize = 12.sp)
             }
             
             if (state.error != null) { Spacer(modifier = Modifier.height(8.dp)); Text(state.error ?: "", color = Color.Red) }
@@ -525,21 +515,21 @@ private fun TeDebenSection(grupo: Grupo, state: GruposUiState, vm: GruposViewMod
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TuDebesSection(grupo: Grupo, state: GruposUiState, vm: GruposViewModel, montoTuDebes: String, onMontoTuDebesChange: (String) -> Unit, descripcionTuDebes: String, onDescTuDebesChange: (String) -> Unit, personaTuDebes: String, onPersonaTuDebesChange: (String) -> Unit, expandedTuDebes: Boolean, onExpandedChange: (Boolean) -> Unit, darkBlue: Color, purple: Color, onBack: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = null) }; Text(text = "Tu debes", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = purple) }
+    Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = null) }; Text(text = stringResource(R.string.grupos_tu_debes), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = purple) }
     Spacer(modifier = Modifier.height(20.dp))
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(20.dp)) {
             ExposedDropdownMenuBox(expanded = expandedTuDebes, onExpandedChange = { onExpandedChange(!expandedTuDebes) }) {
-                TextField(value = personaTuDebes, onValueChange = {}, readOnly = true, label = { Text("A quien le debes") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTuDebes) }, modifier = Modifier.fillMaxWidth().menuAnchor(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
+                TextField(value = personaTuDebes, onValueChange = {}, readOnly = true, label = { Text(stringResource(R.string.grupos_label_a_quien_debes)) }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTuDebes) }, modifier = Modifier.fillMaxWidth().menuAnchor(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
                 ExposedDropdownMenu(expanded = expandedTuDebes, onDismissRequest = { onExpandedChange(false) }) { grupo.personas.forEach { persona -> DropdownMenuItem(text = { Text(persona) }, onClick = { onPersonaTuDebesChange(persona); onExpandedChange(false) }) } }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            TextField(value = montoTuDebes, onValueChange = onMontoTuDebesChange, label = { Text("Cuanto") }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
+            TextField(value = montoTuDebes, onValueChange = onMontoTuDebesChange, label = { Text(stringResource(R.string.grupos_label_cuanto)) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
             Spacer(modifier = Modifier.height(16.dp))
-            TextField(value = descripcionTuDebes, onValueChange = onDescTuDebesChange, label = { Text("Por que") }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
+            TextField(value = descripcionTuDebes, onValueChange = onDescTuDebesChange, label = { Text(stringResource(R.string.grupos_label_porque)) }, modifier = Modifier.fillMaxWidth(), colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)), shape = RoundedCornerShape(12.dp))
             Spacer(modifier = Modifier.height(24.dp))
             if (state.isLoading) { CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = purple) }
-            else { Button(onClick = { val m = montoTuDebes.toDoubleOrNull() ?: 0.0; if (m > 0 && personaTuDebes.isNotBlank()) { vm.agregarGasto(personaTuDebes, m, descripcionTuDebes, "tu_debes"); onMontoTuDebesChange(""); onDescTuDebesChange(""); onPersonaTuDebesChange(""); onBack() } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = purple), shape = RoundedCornerShape(25.dp)) { Text("Registrar", fontSize = 16.sp) } }
+            else { Button(onClick = { val m = montoTuDebes.toDoubleOrNull() ?: 0.0; if (m > 0 && personaTuDebes.isNotBlank()) { vm.agregarGasto(personaTuDebes, m, descripcionTuDebes, "tu_debes"); onMontoTuDebesChange(""); onDescTuDebesChange(""); onPersonaTuDebesChange(""); onBack() } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = purple), shape = RoundedCornerShape(25.dp)) { Text(stringResource(R.string.grupos_label_registrar), fontSize = 16.sp) } }
             if (state.error != null) { Spacer(modifier = Modifier.height(8.dp)); Text(state.error ?: "", color = Color.Red) }
         }
     }

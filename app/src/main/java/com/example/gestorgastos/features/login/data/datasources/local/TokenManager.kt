@@ -2,8 +2,12 @@ package com.example.gestorgastos.features.login.data.datasources.local
 
 import android.content.Context
 import android.content.SharedPreferences
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class TokenManager(context: Context) {
+@Singleton
+class TokenManager @Inject constructor(@ApplicationContext context: Context) {
 
     private val prefs: SharedPreferences = context.getSharedPreferences(
         "gestor_gastos_prefs",

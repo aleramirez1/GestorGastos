@@ -1,3 +1,67 @@
 <resources>
     <string name="app_name">GestorGastos</string>
+    <string name="registro_nombre">Nombre</string>
+    <string name="registro_email">Email</string>
+    <string name="registro_password">Password</string>
+    <string name="registro_btn">Registrarse</string>
+    <string name="registro_go_to_login">Ya tienes cuenta? Inicia sesion</string>
+    <string name="error_all_fields_required">Todos los campos son requeridos</string>
+    <string name="login_email">Email</string>
+    <string name="login_password">Password</string>
+    <string name="login_btn">Iniciar Sesión</string>
+    <string name="login_go_to_registro">No tienes cuenta? Registrate</string>
+    <string name="login_remember_me">Remember me</string>
+    <string name="login_forgot_password">Forgot password?</string>
+
+    <string name="grupos_titulo">Mis Grupos</string>
+    <string name="grupos_no_grupos">No tienes grupos aun</string>
+    <string name="grupos_personas_count">%1$s personas</string>
+    <string name="grupos_btn_generar">Generar grupo</string>
+    <string name="grupos_btn_personas">Personas</string>
+    <string name="grupos_crear_titulo">Crear Grupo</string>
+    <string name="grupos_label_nombre">Nombre del grupo</string>
+    <string name="grupos_label_cuantas_personas">Cuantas personas</string>
+    <string name="grupos_btn_camara">Abrir cámara para mostrar el ticket</string>
+    <string name="grupos_foto_ticket_success">✓ Foto del ticket guardada</string>
+    <string name="grupos_foto_ticket_desc">Se adjuntará al grupo</string>
+    <string name="grupos_btn_continuar">Continuar</string>
+    <string name="grupos_agregar_participantes">Agregar Participantes</string>
+    <string name="grupos_label_persona_n">Persona %1$d</string>
+    <string name="grupos_btn_next">Next</string>
+    <string name="grupos_agregar_gasto">Agregar Gasto</string>
+    <string name="grupos_label_monto_total">Monto total</string>
+    <string name="grupos_te_deben_calc">Cada uno te debe: $%1$s</string>
+    <string name="grupos_label_concepto">Concepto</string>
+    <string name="grupos_btn_crear_grupo">Crear Grupo</string>
+    <string name="grupos_editar_titulo">Editar %1$s</string>
+    <string name="grupos_personas_del_grupo">Personas del grupo</string>
+    <string name="grupos_btn_agregar_persona">Agregar persona</string>
+    <string name="grupos_btn_agregar_gasto">Agregar gasto</string>
+    <string name="grupos_label_registrar">Registrar</string>
+    <string name="grupos_te_deben">Te deben</string>
+    <string name="grupos_tu_debes">Tu debes</string>
+    <string name="grupos_gastos_registrados">Gastos registrados</string>
+    <string name="grupos_label_monto">Monto</string>
+    <string name="grupos_te_debe_formato">%1$s te debe</string>
+    <string name="grupos_debes_a_formato">Debes a %1$s</string>
+    <string name="grupos_label_porque">Por que</string>
+    <string name="grupos_ticket_del_grupo">Ticket del grupo</string>
+    <string name="grupos_foto_guardada">Foto guardada</string>
+    <string name="grupos_label_a_quien_debes">A quien le debes</string>
+    <string name="grupos_label_cuanto">Cuanto</string>
+    <string name="grupos_label_grupo_formato">Grupo: %1$s</string>
+
+    <string name="ruleta_titulo">Ruleta - ¿Quién paga $50 más?</string>
+    <string name="ruleta_no_participantes">No hay participantes</string>
+    <string name="ruleta_ganador_label">¡Ganador!</string>
+    <string name="ruleta_ganador_mensaje">Paga $50 más</string>
+    <string name="ruleta_btn_confirmar">Confirmar y Continuar</string>
+    <string name="ruleta_btn_girar">Girar Ruleta</string>
+    <string name="ruleta_btn_girando">Girando...</string>
+    <string name="comun_volver">Volver</string>
+
+    <string name="ver_ganadores_titulo">Personas que deben +$50</string>
+    <string name="ver_ganadores_vacio">No hay ganadores de ruleta aún</string>
+    <string name="ver_ganadores_vacio_desc">Juega la ruleta al crear un grupo</string>
+    <string name="ver_ganadores_monto_extra">+$50</string>
 </resources>

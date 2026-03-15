@@ -1,6 +1,5 @@
 package com.example.gestorgastos.features.login.presentation.viewmodels
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -13,17 +12,21 @@ import com.example.gestorgastos.core.hardware.domain.RotationManager
 import com.example.gestorgastos.features.login.data.datasources.local.TokenManager
 import com.example.gestorgastos.features.login.domain.usecases.LoginUseCase
 import com.example.gestorgastos.features.login.presentation.screens.LoginUiState
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class LoginViewModel(
+@HiltViewModel
+class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val tokenManager: TokenManager,
     private val rotationManager: RotationManager,
     private val activityManager: ActivityManager,
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -34,12 +37,9 @@ class LoginViewModel(
             try {
                 _uiState.update { it.copy(isLoading = true, error = null) }
                 
-                // Permitir acceso con cualquier usuario y contraseña (modo offline)
                 if (nombre.isNotBlank() && password.isNotBlank()) {
-                    // Verificar y solicitar permiso para modificar configuraciones del sistema
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         if (!Settings.System.canWrite(context)) {
-                            // Solicitar permiso
                             val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
                             intent.data = Uri.parse("package:${context.packageName}")
                             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -49,19 +49,14 @@ class LoginViewModel(
                         }
                     }
                     
-                    // Activar rotación automática en la configuración del sistema
                     rotationManager.enableAutoRotation()
-                    
-                    // Permitir que la app rote
                     activityManager.enableRotation()
                     
-                    // Guardar datos localmente
                     tokenManager.saveUserId(1)
                     tokenManager.saveUserName(nombre)
                     tokenManager.saveToken("offline-token-${System.currentTimeMillis()}")
                     _uiState.update { it.copy(isLoading = false, isSuccess = true) }
                 } else {
-                    // Si están vacíos, mostrar error
                     _uiState.update { it.copy(isLoading = false, error = "Usuario y contraseña requeridos") }
                 }
             } catch (e: Exception) {

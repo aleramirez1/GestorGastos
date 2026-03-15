@@ -4,8 +4,9 @@ import com.example.gestorgastos.core.network.GastosApi
 import com.example.gestorgastos.features.login.data.datasources.local.TokenManager
 import com.example.gestorgastos.features.login.data.datasources.remote.model.LoginRequest
 import com.example.gestorgastos.features.login.domain.repositories.LoginRepository
+import javax.inject.Inject
 
-class LoginRepositoryImpl(
+class LoginRepositoryImpl @Inject constructor(
     private val api: GastosApi,
     private val tokenManager: TokenManager
 ) : LoginRepository {

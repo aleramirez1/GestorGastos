@@ -12,9 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gestorgastos.R
 import com.example.gestorgastos.features.grupos.domain.entities.Grupo
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,14 +38,16 @@ fun VerGanadoresRuletaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Personas que deben +$50") },
+                title = { Text(stringResource(R.string.ver_ganadores_titulo)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.comun_volver))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF5C6BC0)
+                    containerColor = Color(0xFF5C6BC0),
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
         }
@@ -64,14 +68,14 @@ fun VerGanadoresRuletaScreen(
                         modifier = Modifier.padding(32.dp)
                     ) {
                         Text(
-                            "No hay ganadores de ruleta aún",
+                            stringResource(R.string.ver_ganadores_vacio),
                             fontSize = 18.sp,
                             color = Color.Gray,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "Juega la ruleta al crear un grupo",
+                            stringResource(R.string.ver_ganadores_vacio_desc),
                             fontSize = 14.sp,
                             color = Color.Gray
                         )
@@ -112,7 +116,6 @@ private fun GanadorCard(ganadorInfo: GanadorInfo) {
                 .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono de moneda
             Box(
                 modifier = Modifier
                     .size(60.dp)
@@ -138,7 +141,7 @@ private fun GanadorCard(ganadorInfo: GanadorInfo) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "Grupo: ${ganadorInfo.nombreGrupo}",
+                    stringResource(R.string.grupos_label_grupo_formato, ganadorInfo.nombreGrupo),
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -150,14 +153,13 @@ private fun GanadorCard(ganadorInfo: GanadorInfo) {
                 )
             }
             
-            // Badge de +50
             Box(
                 modifier = Modifier
                     .background(Color(0xFFE57373), shape = RoundedCornerShape(8.dp))
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    "+$50",
+                    stringResource(R.string.ver_ganadores_monto_extra),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White

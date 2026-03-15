@@ -14,16 +14,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.gestorgastos.R
 import com.example.gestorgastos.features.grupos.presentation.viewmodels.GruposViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonasScreen(
-    viewModel: GruposViewModel,
+    viewModel: GruposViewModel = hiltViewModel(),
     onBack: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -45,10 +48,10 @@ fun PersonasScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Personas que deben $50") },
+                title = { Text(stringResource(R.string.ver_ganadores_titulo)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.comun_volver))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -75,19 +78,14 @@ fun PersonasScreen(
                         modifier = Modifier.padding(32.dp)
                     ) {
                         Text(
-                            "No hay personas que deban $50",
+                            stringResource(R.string.ver_ganadores_vacio),
                             fontSize = 20.sp,
                             color = Color.Gray,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            "Cuando juegues la ruleta al crear un grupo,",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
-                        Text(
-                            "los ganadores aparecerán aquí",
+                            stringResource(R.string.ver_ganadores_vacio_desc),
                             fontSize = 14.sp,
                             color = Color.Gray
                         )
@@ -153,7 +151,7 @@ private fun PersonaCard(personaInfo: PersonaInfo) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "Grupo: ${personaInfo.nombreGrupo}",
+                    stringResource(R.string.grupos_label_grupo_formato, personaInfo.nombreGrupo),
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -171,7 +169,7 @@ private fun PersonaCard(personaInfo: PersonaInfo) {
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    "+$50",
+                    stringResource(R.string.ver_ganadores_monto_extra),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White

@@ -6,16 +6,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.gestorgastos.core.di.AppContainer
 import com.example.gestorgastos.core.navigation.NavigationWrapper
 import com.example.gestorgastos.core.ui.theme.GestorGastosTheme
 import com.example.gestorgastos.features.grupos.navigation.GruposNavGraph
-import com.example.gestorgastos.features.login.di.LoginModule
 import com.example.gestorgastos.features.login.navigation.LoginNavGraph
 import com.example.gestorgastos.features.personas.navigation.PersonasNavGraph
-import com.example.gestorgastos.features.registro.di.RegistroModule
 import com.example.gestorgastos.features.registro.navigation.RegistroNavGraph
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     
     private var rotationEnabled = false
@@ -23,17 +22,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        val appContainer = AppContainer(applicationContext)
         
-        // Iniciar bloqueado en portrait
+
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         
         val navGraphs = listOf(
-            LoginNavGraph(LoginModule(appContainer)),
-            RegistroNavGraph(RegistroModule(appContainer)),
-            GruposNavGraph(appContainer),
-            PersonasNavGraph(appContainer)
+            LoginNavGraph(),
+            RegistroNavGraph(),
+            GruposNavGraph(),
+            PersonasNavGraph()
         )
 
         setContent {

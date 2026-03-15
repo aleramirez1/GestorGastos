@@ -1,22 +1,25 @@
 package com.example.gestorgastos.features.login.di
 
-import com.example.gestorgastos.core.di.AppContainer
-import com.example.gestorgastos.features.login.domain.usecases.LoginUseCase
-import com.example.gestorgastos.features.login.presentation.viewmodels.LoginViewModelFactory
+import com.example.gestorgastos.core.network.GastosApi
+import com.example.gestorgastos.features.login.data.datasources.local.TokenManager
+import com.example.gestorgastos.features.login.data.repositories.LoginRepositoryImpl
+import com.example.gestorgastos.features.login.domain.repositories.LoginRepository
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
-class LoginModule(private val appContainer: AppContainer) {
+@Module
+@InstallIn(SingletonComponent::class)
+object LoginModule {
 
-    private fun provideLoginUseCase(): LoginUseCase {
-        return LoginUseCase(appContainer.loginRepository)
-    }
-
-    fun provideLoginViewModelFactory(): LoginViewModelFactory {
-        return LoginViewModelFactory(
-            provideLoginUseCase(), 
-            appContainer.tokenManager,
-            appContainer.rotationManager,
-            appContainer.activityManager,
-            appContainer.context
-        )
+    @Provides
+    @Singleton
+    fun provideLoginRepository(
+        api: GastosApi,
+        tokenManager: TokenManager
+    ): LoginRepository {
+        return LoginRepositoryImpl(api, tokenManager)
     }
 }

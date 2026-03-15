@@ -1,15 +1,7 @@
 package com.example.gestorgastos
 
 import android.app.Application
-import com.example.gestorgastos.core.di.AppContainer
+import dagger.hilt.android.HiltAndroidApp
 
-class GestorGastosApplication : Application() {
-
-    lateinit var appContainer: AppContainer
-        private set
-
-    override fun onCreate() {
-        super.onCreate()
-        appContainer = AppContainer(this)
-    }
-}
+@HiltAndroidApp
+class GestorGastosApplication : Application()

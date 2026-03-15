@@ -18,11 +18,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate as drawScopeRotate
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.gestorgastos.R
 import com.example.gestorgastos.features.ruleta.presentation.viewmodels.RuletaViewModel
 import kotlin.math.cos
 import kotlin.math.sin
@@ -32,9 +34,9 @@ import kotlin.math.sin
 fun RuletaScreen(
     participantes: List<String>,
     onBack: () -> Unit,
-    onGanadorSeleccionado: (String) -> Unit
+    onGanadorSeleccionado: (String) -> Unit,
+    viewModel: RuletaViewModel = hiltViewModel()
 ) {
-    val viewModel: RuletaViewModel = viewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(participantes) {
@@ -44,10 +46,10 @@ fun RuletaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Ruleta - ¿Quién paga $50 más?") },
+                title = { Text(stringResource(R.string.ruleta_titulo)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.comun_volver))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -68,7 +70,7 @@ fun RuletaScreen(
             verticalArrangement = Arrangement.Center
         ) {
             if (state.participantes.isEmpty()) {
-                Text("No hay participantes", fontSize = 18.sp)
+                Text(stringResource(R.string.ruleta_no_participantes), fontSize = 18.sp)
             } else {
                 Box(
                     modifier = Modifier.size(320.dp),
@@ -87,7 +89,7 @@ fun RuletaScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .offset(y = (-160).dp)
-                            .background(Color(0xFFFF5252), shape = androidx.compose.foundation.shape.CircleShape),
+                            .background(Color(0xFFFF5252), shape = CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("▼", fontSize = 24.sp, color = Color.White)
@@ -108,7 +110,7 @@ fun RuletaScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                "¡Ganador!",
+                                stringResource(R.string.ruleta_ganador_label),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -122,7 +124,7 @@ fun RuletaScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "Paga $50 más",
+                                stringResource(R.string.ruleta_ganador_mensaje),
                                 fontSize = 18.sp,
                                 color = Color.White
                             )
@@ -140,7 +142,7 @@ fun RuletaScreen(
                             .height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0))
                     ) {
-                        Text("Confirmar y Continuar", fontSize = 18.sp)
+                        Text(stringResource(R.string.ruleta_btn_confirmar), fontSize = 18.sp)
                     }
                 } else {
                     Button(
@@ -152,7 +154,7 @@ fun RuletaScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0))
                     ) {
                         Text(
-                            if (state.isSpinning) "Girando..." else "Girar Ruleta",
+                            if (state.isSpinning) stringResource(R.string.ruleta_btn_girando) else stringResource(R.string.ruleta_btn_girar),
                             fontSize = 18.sp
                         )
                     }
