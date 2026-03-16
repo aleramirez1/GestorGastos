@@ -1,5 +1,6 @@
 package com.example.gestorgastos.features.grupos.data.repositories
 
+import android.util.Log
 import com.example.gestorgastos.core.database.dao.GrupoDao
 import com.example.gestorgastos.core.database.entities.GrupoEntity
 import com.example.gestorgastos.core.network.GastosApi
@@ -18,6 +19,10 @@ class GruposRepositoryImpl @Inject constructor(
     private val grupoDao: GrupoDao,
     private val tokenManager: TokenManager
 ) : GruposRepository {
+
+    companion object {
+        private const val TAG = "ROOM_SQLITE"
+    }
 
     override suspend fun crearGrupo(nombre: String, personas: List<String>, usuarioId: Int): Grupo {
         val grupo = api.crearGrupo(GrupoRequest(nombre, personas, usuarioId)).toDomain()
@@ -80,10 +85,16 @@ class GruposRepositoryImpl @Inject constructor(
             ganadorRuleta = grupo.ganadorRuleta
         )
         grupoDao.insertGrupo(entity)
+        Log.d(TAG, "GUARDADO EN SQLITE: Grupo '${grupo.nombre}' con ID ${grupo.id}")
     }
     
     override suspend fun obtenerGruposLocales(usuarioId: Int): List<Grupo> {
-        return grupoDao.getGruposByUsuarioSync(usuarioId).map { entity ->
+        val entities = grupoDao.getGruposByUsuarioSync(usuarioId)
+        Log.d(TAG, "LEIDO DE SQLITE: ${entities.size} grupos encontrados para usuario $usuarioId")
+        entities.forEach { 
+            Log.d(TAG, "  -> Grupo: ${it.nombre}, Ganador: ${it.ganadorRuleta ?: "ninguno"}")
+        }
+        return entities.map { entity ->
             Grupo(
                 id = entity.id,
                 nombre = entity.nombre,
@@ -98,6 +109,12 @@ class GruposRepositoryImpl @Inject constructor(
     }
     
     override suspend fun actualizarGrupoLocal(grupo: Grupo) {
+        Log.d(TAG, "ACTUALIZADO EN SQLITE: Grupo '${grupo.nombre}', Ganador: ${grupo.ganadorRuleta}")
         guardarGrupoLocal(grupo)
+    }
+    
+    override suspend fun eliminarGrupoLocal(grupoId: Int) {
+        grupoDao.deleteGrupo(grupoId)
+        Log.d(TAG, "ELIMINADO DE SQLITE: Grupo con ID $grupoId")
     }
 }

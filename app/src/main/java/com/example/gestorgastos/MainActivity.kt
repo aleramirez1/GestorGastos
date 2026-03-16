@@ -42,7 +42,6 @@ class MainActivity : ComponentActivity() {
     
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        // Mantener la orientación actual si la rotación está habilitada
         if (!rotationEnabled) {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }

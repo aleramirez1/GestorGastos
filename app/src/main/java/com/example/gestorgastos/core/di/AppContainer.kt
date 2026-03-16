@@ -1,9 +1,14 @@
 package com.example.gestorgastos.core.di
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
 import com.example.gestorgastos.core.database.GastosDatabase
 import com.example.gestorgastos.core.database.dao.GrupoDao
+import com.example.gestorgastos.core.database.dao.SesionDao
+import com.example.gestorgastos.core.database.dao.UsuarioDao
+import com.example.gestorgastos.core.database.entities.SesionEntity
+import com.example.gestorgastos.core.database.entities.UsuarioEntity
 import com.example.gestorgastos.core.hardware.data.AndroidActivityManager
 import com.example.gestorgastos.core.hardware.data.AndroidAlertManager
 import com.example.gestorgastos.core.hardware.data.AndroidFlashlightManager
@@ -24,11 +29,20 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import okhttp3.logging.HttpLoggingInterceptor
 import okhttp3.OkHttpClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class AppContainer(context: Context) {
 
     val context: Context = context.applicationContext
 
+    companion object {
+        private const val TAG = "ROOM_SQLITE"
+    }
 
     private val gastosApi: GastosApi by lazy {
         retrofit.create(GastosApi::class.java)
@@ -39,29 +53,35 @@ class AppContainer(context: Context) {
             context,
             GastosDatabase::class.java,
             "gestor_gastos_db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     private val retrofit: Retrofit by lazy {
-        // 1. Creamos un interceptor para ver los logs
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
-        // 2. Creamos el cliente que usará el interceptor
         val client = OkHttpClient.Builder()
             .addInterceptor(logging)
             .build()
 
         Retrofit.Builder()
             .baseUrl("https://api-gastos.freedynamicdns.net/")
-            .client(client) // <--- OJO: No olvides asignar el cliente
+            .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
 
     private val grupoDao: GrupoDao by lazy {
         database.grupoDao()
+    }
+    
+    val usuarioDao: UsuarioDao by lazy {
+        database.usuarioDao()
+    }
+    
+    val sesionDao: SesionDao by lazy {
+        database.sesionDao()
     }
 
     val tokenManager: TokenManager by lazy {
@@ -95,5 +115,43 @@ class AppContainer(context: Context) {
     val activityManager: ActivityManager by lazy {
         AndroidActivityManager()
     }
-
+    
+    fun guardarUsuarioLocal(username: String, email: String, password: String, onResult: (Int) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val fecha = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+            val usuario = UsuarioEntity(
+                username = username,
+                email = email,
+                passwordHash = password.hashCode().toString(),
+                fechaRegistro = fecha
+            )
+            val id = usuarioDao.insertUsuario(usuario)
+            Log.d(TAG, "REGISTRO - Usuario guardado en SQLite: $username con ID $id")
+            onResult(id.toInt())
+        }
+    }
+    
+    fun guardarSesionLocal(usuarioId: Int, username: String, token: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val fecha = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+            sesionDao.cerrarTodasLasSesiones()
+            val sesion = SesionEntity(
+                usuarioId = usuarioId,
+                username = username,
+                token = token,
+                fechaLogin = fecha,
+                activa = true
+            )
+            sesionDao.insertSesion(sesion)
+            usuarioDao.actualizarUltimoLogin(usuarioId, fecha)
+            Log.d(TAG, "LOGIN - Sesión guardada en SQLite: $username")
+        }
+    }
+    
+    fun cerrarSesionLocal(usuarioId: Int) {
+        CoroutineScope(Dispatchers.IO).launch {
+            sesionDao.cerrarSesion(usuarioId)
+            Log.d(TAG, "LOGOUT - Sesión cerrada en SQLite para usuario $usuarioId")
+        }
+    }
 }

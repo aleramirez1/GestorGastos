@@ -17,7 +17,6 @@ class GruposViewModelFactory(
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        // Crear un CameraManager dummy si es null
         val camera = cameraManager ?: object : CameraManager {
             override suspend fun takePicture(): Result<android.net.Uri> {
                 return Result.failure(Exception("Cámara no disponible"))

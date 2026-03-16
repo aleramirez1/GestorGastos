@@ -24,7 +24,6 @@ class GruposNavGraph : FeatureNavGraph {
             GruposScreen(
                 viewModel = viewModel,
                 onLogout = {
-                    // El logout debería ser manejado preferiblemente por un UseCase o el ViewModel
                     navController.navigate(Login) {
                         popUpTo(Grupos) { inclusive = true }
                     }

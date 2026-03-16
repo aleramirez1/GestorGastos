@@ -164,6 +164,7 @@ class GruposViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
+                repository.eliminarGrupoLocal(grupoId)
                 _uiState.update { state ->
                     state.copy(isLoading = false, grupos = state.grupos.filter { it.id != grupoId }, grupoActual = null)
                 }
