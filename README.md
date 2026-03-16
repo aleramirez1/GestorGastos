@@ -19,4 +19,4 @@ App Android para gestionar gastos compartidos entre amigos, familia o trabajo.
 ## Requisitos
 
 - Android Studio
-- API REST corriendo en localhost:8000
+- API REST corriendo en http://54.197.208.12:8000/docs#/
