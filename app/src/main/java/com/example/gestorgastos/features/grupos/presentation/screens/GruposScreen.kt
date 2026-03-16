@@ -128,9 +128,28 @@ private fun CrearGrupoScreen(
     navigate: (String) -> Unit,
     onNavigateToRuleta: (List<String>, Int) -> Unit = { _, _ -> }
 ) {
-    var fotoUri by remember { mutableStateOf<Uri?>(null) }
+    var fotoUri by remember { mutableStateOf<android.net.Uri?>(null) }
     var fotoCaptured by remember { mutableStateOf(false) }
+    var errorCamara by remember { mutableStateOf<String?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = context as? android.app.Activity
+
+    fun crearUriParaFoto(): android.net.Uri? {
+        return try {
+            val dir = context.cacheDir
+            if (!dir.exists()) dir.mkdirs()
+            val photoFile = java.io.File(dir, "ticket_${System.currentTimeMillis()}.jpg")
+            photoFile.createNewFile()
+            androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                photoFile
+            )
+        } catch (e: Exception) {
+            errorCamara = "Error al preparar cámara: ${e.message}"
+            null
+        }
+    }
     
     val cameraLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.TakePicture()
@@ -138,10 +157,10 @@ private fun CrearGrupoScreen(
         if (success && fotoUri != null) {
             fotoCaptured = true
             onFotoUriChange(fotoUri.toString())
+            errorCamara = null
         } else {
             fotoCaptured = false
-            fotoUri = null
-            onFotoUriChange(null)
+            errorCamara = if (!success) "No se tomó la foto" else null
         }
     }
     
@@ -149,19 +168,23 @@ private fun CrearGrupoScreen(
         contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            val photoFile = java.io.File.createTempFile(
-                "gasto_${System.currentTimeMillis()}",
-                ".jpg",
-                context.getExternalFilesDir(null)
-            )
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                photoFile
-            )
-            fotoUri = uri
-            fotoCaptured = false
-            cameraLauncher.launch(uri)
+            val uri = crearUriParaFoto()
+            if (uri != null) {
+                fotoUri = uri
+                cameraLauncher.launch(uri)
+            }
+        } else {
+            val showRationale = activity?.shouldShowRequestPermissionRationale(android.Manifest.permission.CAMERA) ?: false
+            if (!showRationale) {
+                val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                    flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+                errorCamara = "Activa el permiso de cámara en Configuración"
+            } else {
+                errorCamara = "Se necesita permiso de cámara"
+            }
         }
     }
     
@@ -183,25 +206,17 @@ private fun CrearGrupoScreen(
                         androidx.core.content.ContextCompat.checkSelfPermission(
                             context, permission
                         ) == android.content.pm.PackageManager.PERMISSION_GRANTED -> {
-                            val photoFile = java.io.File.createTempFile(
-                                "gasto_${System.currentTimeMillis()}",
-                                ".jpg",
-                                context.getExternalFilesDir(null)
-                            )
-                            val uri = androidx.core.content.FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.fileprovider",
-                                photoFile
-                            )
-                            fotoUri = uri
-                            fotoCaptured = false
-                            cameraLauncher.launch(uri)
+                            val uri = crearUriParaFoto()
+                            if (uri != null) {
+                                fotoUri = uri
+                                cameraLauncher.launch(uri)
+                            }
                         }
                         else -> {
                             permissionLauncher.launch(permission)
                         }
                     }
-                }, 
+                },
                 modifier = Modifier.fillMaxWidth().height(50.dp), 
                 colors = ButtonDefaults.buttonColors(containerColor = darkBlue), 
                 shape = RoundedCornerShape(12.dp)
@@ -209,6 +224,11 @@ private fun CrearGrupoScreen(
                 Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.grupos_btn_camara), fontSize = 14.sp) 
+            }
+            
+            if (errorCamara != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(errorCamara!!, color = Color.Red, fontSize = 12.sp)
             }
             
             if (fotoCaptured && fotoUri != null) {
@@ -497,9 +517,9 @@ private fun TeDebenSection(grupo: Grupo, state: GruposUiState, vm: GruposViewMod
                     modifier = Modifier.fillMaxWidth().height(200.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    androidx.compose.foundation.Image(
-                        painter = androidx.compose.ui.res.painterResource(android.R.drawable.ic_menu_gallery),
-                        contentDescription = "Ticket",
+                    coil.compose.AsyncImage(
+                        model = android.net.Uri.parse(grupo.fotoTicketUri),
+                        contentDescription = "Foto del ticket",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop
                     )

@@ -18,6 +18,7 @@ ksp = "2.0.21-1.0.26"
 room = "2.6.1"
 okhttp = "4.12.0"
 camera = "1.4.0"
+coil = "2.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -55,6 +56,7 @@ androidx-camera-core = { group = "androidx.camera", name = "camera-core", versio
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camera" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camera" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camera" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

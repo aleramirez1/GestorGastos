@@ -30,44 +30,41 @@ class RegistroViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(RegistroUiState())
     val uiState = _uiState.asStateFlow()
 
-
     fun registro(nombre: String, email: String, password: String) {
         _uiState.update { it.copy(isLoading = true, error = null) }
 
-        if (nombre.isNotBlank() && email.isNotBlank() && password.isNotBlank()) {
-            viewModelScope.launch {
-                try {
-                    val existente = usuarioDao.getUsuarioByUsername(nombre)
-                    if (existente != null) {
-                        _uiState.update { it.copy(isLoading = false, error = "El usuario ya existe") }
-                        return@launch
-                    }
-                    
-                    val existenteEmail = usuarioDao.getUsuarioByEmail(email)
-                    if (existenteEmail != null) {
-                        _uiState.update { it.copy(isLoading = false, error = "El email ya está registrado") }
-                        return@launch
-                    }
-                    
-                    val fecha = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-                    val usuario = UsuarioEntity(
-                        username = nombre,
-                        email = email,
-                        passwordHash = password.hashCode().toString(),
-                        fechaRegistro = fecha
-                    )
-                    val id = usuarioDao.insertUsuario(usuario)
-                    Log.d(TAG, "REGISTRO - Usuario guardado en SQLite: $nombre, email: $email, ID: $id")
-                    
-                    _uiState.update { it.copy(isLoading = false, isSuccess = true) }
-                } catch (e: Exception) {
-                    _uiState.update { it.copy(isLoading = false, error = "Error: ${e.message}") }
-                }
-            }
+        if (nombre.isBlank() || email.isBlank() || password.isBlank()) {
+            _uiState.update { it.copy(isLoading = false, error = "Todos los campos son requeridos") }
             return
         }
 
-        _uiState.update { it.copy(isLoading = false, error = "Todos los campos son requeridos") }
+        if (!email.contains("@")) {
+            _uiState.update { it.copy(isLoading = false, error = "Correo inválido") }
+            return
+        }
+
+        if (password.length < 4) {
+            _uiState.update { it.copy(isLoading = false, error = "La contraseña debe tener mínimo 4 caracteres") }
+            return
+        }
+
+        viewModelScope.launch {
+            val result = registroUseCase(nombre, email, password)
+            if (result.isSuccess) {
+                val fecha = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                val usuario = UsuarioEntity(
+                    username = nombre,
+                    email = email,
+                    fechaRegistro = fecha
+                )
+                val id = usuarioDao.insertUsuario(usuario)
+                Log.d(TAG, "REGISTRO - Usuario guardado en SQLite: $nombre, ID: $id")
+                _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+            } else {
+                val msg = result.exceptionOrNull()?.message ?: "Error al registrar"
+                _uiState.update { it.copy(isLoading = false, error = msg) }
+            }
+        }
     }
 
     fun resetState() {

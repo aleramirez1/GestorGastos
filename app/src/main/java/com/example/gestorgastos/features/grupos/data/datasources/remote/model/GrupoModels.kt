@@ -41,5 +41,9 @@ data class GrupoResponse(
     @SerializedName("fecha_creacion")
     val fechaCreacion: String,
     val personas: List<String>,
-    val gastos: List<GastoGrupoResponse>
+    val gastos: List<GastoGrupoResponse>,
+    @SerializedName("foto_ticket_uri")
+    val fotoTicketUri: String? = null,
+    @SerializedName("ganador_ruleta")
+    val ganadorRuleta: String? = null
 )

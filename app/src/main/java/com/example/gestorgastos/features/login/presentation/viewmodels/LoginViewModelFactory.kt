@@ -1,6 +1,5 @@
 package com.example.gestorgastos.features.login.presentation.viewmodels
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.gestorgastos.core.database.dao.SesionDao
@@ -16,11 +15,10 @@ class LoginViewModelFactory(
     private val rotationManager: RotationManager,
     private val activityManager: ActivityManager,
     private val usuarioDao: UsuarioDao,
-    private val sesionDao: SesionDao,
-    private val context: Context
+    private val sesionDao: SesionDao
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return LoginViewModel(loginUseCase, tokenManager, rotationManager, activityManager, usuarioDao, sesionDao, context) as T
+        return LoginViewModel(loginUseCase, tokenManager, rotationManager, activityManager, usuarioDao, sesionDao) as T
     }
 }

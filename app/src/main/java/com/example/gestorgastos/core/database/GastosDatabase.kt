@@ -17,7 +17,7 @@ import com.example.gestorgastos.core.database.converters.Converters
         UsuarioEntity::class,
         SesionEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

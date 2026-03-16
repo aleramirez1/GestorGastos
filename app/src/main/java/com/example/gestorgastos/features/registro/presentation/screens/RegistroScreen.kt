@@ -14,7 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,6 +35,7 @@ fun RegistroScreen(
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     val lightBlue = Color(0xFF4FC3F7)
     val darkBlue = Color(0xFF5C6BC0)
     val purple = Color(0xFF7E57C2)
@@ -106,7 +110,16 @@ fun RegistroScreen(
                 value = password,
                 onValueChange = { password = it },
                 placeholder = { Text(stringResource(R.string.registro_password), color = Color.White) },
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = purple.copy(alpha = 0.7f),

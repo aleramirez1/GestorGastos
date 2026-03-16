@@ -29,7 +29,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://api-gastos.freedynamicdns.net/")
+            .baseUrl("http://54.197.208.12:8000/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

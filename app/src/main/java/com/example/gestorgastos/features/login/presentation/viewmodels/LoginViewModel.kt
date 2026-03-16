@@ -1,10 +1,5 @@
 package com.example.gestorgastos.features.login.presentation.viewmodels
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -18,7 +13,6 @@ import com.example.gestorgastos.features.login.data.datasources.local.TokenManag
 import com.example.gestorgastos.features.login.domain.usecases.LoginUseCase
 import com.example.gestorgastos.features.login.presentation.screens.LoginUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -35,8 +29,7 @@ class LoginViewModel @Inject constructor(
     private val rotationManager: RotationManager,
     private val activityManager: ActivityManager,
     private val usuarioDao: UsuarioDao,
-    private val sesionDao: SesionDao,
-    @ApplicationContext private val context: Context
+    private val sesionDao: SesionDao
 ) : ViewModel() {
 
     companion object {
@@ -50,57 +43,53 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isLoading = true, error = null) }
-                
-                if (nombre.isNotBlank() && password.isNotBlank()) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        if (!Settings.System.canWrite(context)) {
-                            val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
-                            intent.data = Uri.parse("package:${context.packageName}")
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            context.startActivity(intent)
-                            _uiState.update { it.copy(isLoading = false, error = "Por favor, concede permiso para modificar configuraciones del sistema") }
-                            return@launch
-                        }
-                    }
-                    
+
+                if (nombre.isBlank() || password.isBlank()) {
+                    _uiState.update { it.copy(isLoading = false, error = "Usuario y contraseña requeridos") }
+                    return@launch
+                }
+
+                val result = loginUseCase(nombre, password)
+                if (result.isSuccess) {
                     rotationManager.enableAutoRotation()
                     activityManager.enableRotation()
-                    
-                    var usuario = usuarioDao.getUsuarioByUsername(nombre)
-                    if (usuario == null) {
-                        val fecha = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-                        val nuevoUsuario = UsuarioEntity(
+
+                    val userId = tokenManager.getUserId()
+                    val token = tokenManager.getToken() ?: ""
+                    val fecha = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+
+                    // Guardar/actualizar usuario local
+                    val existente = usuarioDao.getUsuarioByUsername(nombre)
+                    val localId = if (existente != null) {
+                        existente.id
+                    } else {
+                        val usuario = UsuarioEntity(
+                            id = userId,
                             username = nombre,
-                            email = "$nombre@local.com",
-                            passwordHash = password.hashCode().toString(),
+                            email = "",
                             fechaRegistro = fecha
                         )
-                        val id = usuarioDao.insertUsuario(nuevoUsuario)
-                        usuario = nuevoUsuario.copy(id = id.toInt())
-                        Log.d(TAG, "LOGIN - Nuevo usuario creado en SQLite: $nombre con ID $id")
+                        usuarioDao.insertUsuario(usuario).toInt()
                     }
-                    
-                    val fecha = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-                    val token = "offline-token-${System.currentTimeMillis()}"
-                    
+
                     sesionDao.cerrarTodasLasSesiones()
-                    val sesion = SesionEntity(
-                        usuarioId = usuario.id,
-                        username = nombre,
-                        token = token,
-                        fechaLogin = fecha,
-                        activa = true
+                    sesionDao.insertSesion(
+                        SesionEntity(
+                            usuarioId = localId,
+                            username = nombre,
+                            token = token,
+                            fechaLogin = fecha,
+                            activa = true
+                        )
                     )
-                    sesionDao.insertSesion(sesion)
-                    usuarioDao.actualizarUltimoLogin(usuario.id, fecha)
-                    Log.d(TAG, "LOGIN - Sesión guardada en SQLite: $nombre, fecha: $fecha")
-                    
-                    tokenManager.saveUserId(usuario.id)
-                    tokenManager.saveUserName(nombre)
-                    tokenManager.saveToken(token)
+                    usuarioDao.actualizarUltimoLogin(localId, fecha)
+                    Log.d(TAG, "LOGIN - Sesión guardada en SQLite: $nombre")
+
                     _uiState.update { it.copy(isLoading = false, isSuccess = true) }
                 } else {
-                    _uiState.update { it.copy(isLoading = false, error = "Usuario y contraseña requeridos") }
+                    _uiState.update {
+                        it.copy(isLoading = false, error = "Credenciales incorrectas")
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Error: ${e.message}") }

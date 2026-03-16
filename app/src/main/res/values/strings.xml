@@ -6,7 +6,7 @@
     <string name="registro_btn">Registrarse</string>
     <string name="registro_go_to_login">Ya tienes cuenta? Inicia sesion</string>
     <string name="error_all_fields_required">Todos los campos son requeridos</string>
-    <string name="login_email">Email</string>
+    <string name="login_email">Nombre</string>
     <string name="login_password">Password</string>
     <string name="login_btn">Iniciar Sesión</string>
     <string name="login_go_to_registro">No tienes cuenta? Registrate</string>

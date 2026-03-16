@@ -66,7 +66,7 @@ class AppContainer(context: Context) {
             .build()
 
         Retrofit.Builder()
-            .baseUrl("https://api-gastos.freedynamicdns.net/")
+            .baseUrl("http://54.197.208.12:8000/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -122,7 +122,6 @@ class AppContainer(context: Context) {
             val usuario = UsuarioEntity(
                 username = username,
                 email = email,
-                passwordHash = password.hashCode().toString(),
                 fechaRegistro = fecha
             )
             val id = usuarioDao.insertUsuario(usuario)

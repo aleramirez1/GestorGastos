@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.gestorgastos.core.hardware.domain.AlertManager
 import com.example.gestorgastos.core.hardware.domain.CameraManager
 import com.example.gestorgastos.core.hardware.domain.FlashlightManager
-import com.example.gestorgastos.features.grupos.domain.entities.GastoGrupo
 import com.example.gestorgastos.features.grupos.domain.entities.Grupo
 import com.example.gestorgastos.features.grupos.domain.repositories.GruposRepository
 import com.example.gestorgastos.features.grupos.presentation.screens.GruposUiState
@@ -44,10 +43,11 @@ class GruposViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val grupos = repository.obtenerGruposLocales(usuarioId)
+                val grupos = repository.obtenerGrupos(usuarioId)
                 _uiState.update { it.copy(isLoading = false, grupos = grupos) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, grupos = emptyList()) }
+                val locales = repository.obtenerGruposLocales(usuarioId)
+                _uiState.update { it.copy(isLoading = false, grupos = locales) }
             }
         }
     }
@@ -58,30 +58,18 @@ class GruposViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val nuevoGrupo = Grupo(
-                    id = System.currentTimeMillis().toInt(),
-                    nombre = nombre,
-                    usuarioId = usuarioId,
-                    fechaCreacion = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()),
-                    personas = personas,
-                    gastos = emptyList(),
-                    fotoTicketUri = fotoTicketUri,
-                    ganadorRuleta = ganadorRuleta
-                )
-                
-                repository.guardarGrupoLocal(nuevoGrupo)
-                
+                val nuevoGrupo = repository.crearGrupo(nombre, personas, usuarioId)
+
                 alertManager.vibrate(500)
-                
                 repeat(3) {
                     flashlightManager.turnOn()
                     delay(200)
                     flashlightManager.turnOff()
                     delay(200)
                 }
-                
-                _uiState.update { 
-                    it.copy(isLoading = false, grupos = it.grupos + nuevoGrupo, grupoActual = nuevoGrupo) 
+
+                _uiState.update {
+                    it.copy(isLoading = false, grupos = it.grupos + nuevoGrupo, grupoActual = nuevoGrupo)
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Error al crear grupo: ${e.message}") }
@@ -122,17 +110,7 @@ class GruposViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val nuevoGasto = GastoGrupo(
-                    id = System.currentTimeMillis().toInt(),
-                    persona = persona,
-                    monto = monto,
-                    descripcion = descripcion,
-                    tipo = tipo,
-                    fecha = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
-                )
-                val grupoActualizado = grupoActual.copy(
-                    gastos = grupoActual.gastos + nuevoGasto
-                )
+                val grupoActualizado = repository.agregarGasto(grupoActual.id, persona, monto, descripcion, tipo)
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
@@ -164,7 +142,7 @@ class GruposViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                repository.eliminarGrupoLocal(grupoId)
+                repository.eliminarGrupo(grupoId)
                 _uiState.update { state ->
                     state.copy(isLoading = false, grupos = state.grupos.filter { it.id != grupoId }, grupoActual = null)
                 }
@@ -179,9 +157,7 @@ class GruposViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val grupoActualizado = grupoActual.copy(
-                    gastos = grupoActual.gastos.filter { it.id != gastoId }
-                )
+                val grupoActualizado = repository.eliminarGasto(grupoActual.id, gastoId)
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
@@ -200,9 +176,7 @@ class GruposViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val grupoActualizado = grupoActual.copy(
-                    personas = grupoActual.personas + persona
-                )
+                val grupoActualizado = repository.agregarPersona(grupoActual.id, persona)
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
@@ -221,9 +195,7 @@ class GruposViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val grupoActualizado = grupoActual.copy(
-                    personas = grupoActual.personas.filter { it != persona }
-                )
+                val grupoActualizado = repository.eliminarPersona(grupoActual.id, persona)
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
@@ -242,11 +214,7 @@ class GruposViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val grupoActualizado = grupoActual.copy(
-                    gastos = grupoActual.gastos.map { 
-                        if (it.id == gastoId) it.copy(monto = nuevoMonto) else it 
-                    }
-                )
+                val grupoActualizado = repository.editarGasto(grupoActual.id, gastoId, nuevoMonto)
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,

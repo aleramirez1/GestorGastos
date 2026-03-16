@@ -8,7 +8,6 @@ data class UsuarioEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val username: String,
     val email: String,
-    val passwordHash: String,
     val fechaRegistro: String,
     val ultimoLogin: String? = null
 )
