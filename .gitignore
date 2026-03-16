@@ -13,6 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
-
-# Excluir API Python (proyecto separado)
-app/src/main/java/com/example/api_python/
+.idea/
+.kotlin/
+api_gestorgastos02/
