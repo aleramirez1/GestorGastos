@@ -7,14 +7,10 @@ import com.example.gestorgastos.features.grupos.data.datasources.remote.model.Gr
 import com.example.gestorgastos.features.grupos.data.datasources.remote.model.GrupoUpdateRequest
 import com.example.gestorgastos.features.login.data.datasources.remote.model.LoginRequest
 import com.example.gestorgastos.features.login.data.datasources.remote.model.LoginResponse
+import com.example.gestorgastos.features.login.data.datasources.remote.model.PerfilUpdateRequest
 import com.example.gestorgastos.features.registro.data.datasources.remote.model.RegistroRequest
 import com.example.gestorgastos.features.registro.data.datasources.remote.model.RegistroResponse
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
+import retrofit2.http.*
 
 interface GastosApi {
 
@@ -23,6 +19,9 @@ interface GastosApi {
 
     @POST("auth/registro")
     suspend fun registro(@Body request: RegistroRequest): RegistroResponse
+
+    @PUT("usuarios/{id}")
+    suspend fun actualizarPerfil(@Path("id") id: Int, @Body request: PerfilUpdateRequest): LoginResponse
 
     @POST("grupos")
     suspend fun crearGrupo(@Body grupo: GrupoRequest): GrupoResponse

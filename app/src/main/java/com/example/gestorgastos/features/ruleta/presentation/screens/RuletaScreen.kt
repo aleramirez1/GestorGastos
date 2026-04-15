@@ -33,14 +33,15 @@ import kotlin.math.sin
 @Composable
 fun RuletaScreen(
     participantes: List<String>,
+    personasQueYaRecibieron: List<String> = emptyList(),
     onBack: () -> Unit,
     onGanadorSeleccionado: (String) -> Unit,
     viewModel: RuletaViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(participantes) {
-        viewModel.setParticipantes(participantes)
+    LaunchedEffect(participantes, personasQueYaRecibieron) {
+        viewModel.setParticipantes(participantes, personasQueYaRecibieron)
     }
 
     Scaffold(
@@ -69,9 +70,20 @@ fun RuletaScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            if (state.participantes.isEmpty()) {
+            if (state.participantesActivos.isEmpty()) {
                 Text(stringResource(R.string.ruleta_no_participantes), fontSize = 18.sp)
+                if (state.personasQueYaRecibieron.isNotEmpty()) {
+                    Text("¡Todos ya han aportado!", fontSize = 16.sp, color = Color.Gray)
+                }
             } else {
+                Text(
+                    text = if (state.personasQueYaRecibieron.isNotEmpty()) "Turno de los que faltan" else "Todos participan",
+                    fontSize = 14.sp,
+                    color = Color(0xFF5C6BC0),
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 Box(
                     modifier = Modifier.size(320.dp),
                     contentAlignment = Alignment.Center
@@ -82,7 +94,7 @@ fun RuletaScreen(
                             .rotate(state.currentRotation),
                         contentAlignment = Alignment.Center
                     ) {
-                        RuletaWheel(participantes = state.participantes)
+                        RuletaWheel(participantes = state.participantesActivos)
                     }
                     
                     Box(
@@ -110,7 +122,7 @@ fun RuletaScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                stringResource(R.string.ruleta_ganador_label),
+                                "¡Le toca a!",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -120,12 +132,6 @@ fun RuletaScreen(
                                 state.ganador!!,
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                stringResource(R.string.ruleta_ganador_mensaje),
-                                fontSize = 18.sp,
                                 color = Color.White
                             )
                         }

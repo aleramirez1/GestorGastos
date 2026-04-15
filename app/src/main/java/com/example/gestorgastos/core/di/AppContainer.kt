@@ -66,7 +66,7 @@ class AppContainer(context: Context) {
             .build()
 
         Retrofit.Builder()
-            .baseUrl("http://54.197.208.12:8000/")
+            .baseUrl("https://api-gastos.freedynamicdns.net/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

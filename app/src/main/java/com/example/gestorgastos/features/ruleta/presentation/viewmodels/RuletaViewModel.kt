@@ -13,10 +13,14 @@ import kotlin.random.Random
 
 data class RuletaUiState(
     val participantes: List<String> = emptyList(),
+    val personasQueYaRecibieron: List<String> = emptyList(),
     val ganador: String? = null,
     val isSpinning: Boolean = false,
     val currentRotation: Float = 0f
-)
+) {
+    val participantesActivos: List<String>
+        get() = participantes.filter { it !in personasQueYaRecibieron }
+}
 
 @HiltViewModel
 class RuletaViewModel @Inject constructor() : ViewModel() {
@@ -24,12 +28,16 @@ class RuletaViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow(RuletaUiState())
     val uiState = _uiState.asStateFlow()
 
-    fun setParticipantes(participantes: List<String>) {
-        _uiState.update { it.copy(participantes = participantes) }
+    fun setParticipantes(participantes: List<String>, personasQueYaRecibieron: List<String> = emptyList()) {
+        _uiState.update { it.copy(
+            participantes = participantes,
+            personasQueYaRecibieron = personasQueYaRecibieron
+        ) }
     }
 
     fun girarRuleta() {
-        if (_uiState.value.isSpinning || _uiState.value.participantes.isEmpty()) return
+        val activos = _uiState.value.participantesActivos
+        if (_uiState.value.isSpinning || activos.isEmpty()) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSpinning = true, ganador = null) }
@@ -43,12 +51,15 @@ class RuletaViewModel @Inject constructor() : ViewModel() {
                 _uiState.update { it.copy(currentRotation = it.currentRotation + rotationPerStep) }
             }
 
-            val ganador = _uiState.value.participantes.random()
+            val ganador = activos.random()
             _uiState.update { it.copy(ganador = ganador, isSpinning = false) }
         }
     }
 
     fun resetRuleta() {
-        _uiState.update { RuletaUiState(participantes = it.participantes) }
+        _uiState.update { RuletaUiState(
+            participantes = it.participantes,
+            personasQueYaRecibieron = it.personasQueYaRecibieron
+        ) }
     }
 }

@@ -12,5 +12,9 @@ data class GrupoEntity(
     val fechaCreacion: String = "",
     val fotoTicketUri: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
-    val ganadorRuleta: String? = null
+    val ganadorRuleta: String? = null,
+    val isAhorro: Boolean = false,
+    val metaAhorro: Double = 0.0,
+    val fechaLimite: String? = null,
+    val personasQueYaRecibieron: List<String> = emptyList()
 )

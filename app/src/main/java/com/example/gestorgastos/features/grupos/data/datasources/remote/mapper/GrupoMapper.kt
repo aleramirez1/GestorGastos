@@ -12,7 +12,8 @@ fun GastoGrupoResponse.toDomain(): GastoGrupo {
         monto = monto,
         descripcion = descripcion,
         tipo = tipo,
-        fecha = fecha
+        fecha = fecha,
+        comprobanteUri = comprobanteUri
     )
 }
 
@@ -23,6 +24,12 @@ fun GrupoResponse.toDomain(): Grupo {
         usuarioId = usuarioId,
         fechaCreacion = fechaCreacion,
         personas = personas,
-        gastos = gastos.map { it.toDomain() }
+        gastos = gastos.map { it.toDomain() },
+        fotoTicketUri = fotoTicketUri,
+        ganadorRuleta = ganadorRuleta,
+        isAhorro = isAhorro,
+        metaAhorro = metaAhorro,
+        fechaLimite = fechaLimite,
+        personasQueYaRecibieron = personasYaRecibieron
     )
 }
