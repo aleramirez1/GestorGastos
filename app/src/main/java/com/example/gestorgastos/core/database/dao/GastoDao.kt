@@ -4,6 +4,7 @@ import androidx.room.*
 import com.example.gestorgastos.core.database.entities.GastoEntity
 import kotlinx.coroutines.flow.Flow
 
+// DAO para Gastos
 @Dao
 interface GastoDao {
     @Query("SELECT * FROM gastos WHERE grupoId = :grupoId ORDER BY fecha DESC")
