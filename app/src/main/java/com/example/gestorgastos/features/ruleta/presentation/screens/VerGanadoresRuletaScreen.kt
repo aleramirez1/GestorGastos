@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,24 +17,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.gestorgastos.R
-import com.example.gestorgastos.features.grupos.domain.entities.Grupo
+import com.example.gestorgastos.features.ruleta.domain.entities.RuletaResult
+import com.example.gestorgastos.features.ruleta.presentation.viewmodels.VerGanadoresViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerGanadoresRuletaScreen(
-    grupos: List<Grupo>,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: VerGanadoresViewModel = hiltViewModel()
 ) {
-    val ganadoresRuleta = grupos.mapNotNull { grupo ->
-        grupo.ganadorRuleta?.let { ganador ->
-            GanadorInfo(
-                nombreGrupo = grupo.nombre,
-                ganador = ganador,
-                fecha = grupo.fechaCreacion
-            )
-        }
-    }
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -58,37 +54,60 @@ fun VerGanadoresRuletaScreen(
                 .padding(padding)
                 .background(Color(0xFFE3F2FD))
         ) {
-            if (ganadoresRuleta.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(32.dp)
+            when {
+                state.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                state.error != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            stringResource(R.string.ver_ganadores_vacio),
-                            fontSize = 18.sp,
-                            color = Color.Gray,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            stringResource(R.string.ver_ganadores_vacio_desc),
-                            fontSize = 14.sp,
-                            color = Color.Gray
+                            state.error ?: "",
+                            fontSize = 16.sp,
+                            color = Color.Red
                         )
                     }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(ganadoresRuleta) { ganadorInfo ->
-                        GanadorCard(ganadorInfo)
+                state.resultados.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Text(
+                                stringResource(R.string.ver_ganadores_vacio),
+                                fontSize = 18.sp,
+                                color = Color.Gray,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                stringResource(R.string.ver_ganadores_vacio_desc),
+                                fontSize = 14.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(state.resultados) { resultado ->
+                            GanadorCard(resultado)
+                        }
                     }
                 }
             }
@@ -96,14 +115,8 @@ fun VerGanadoresRuletaScreen(
     }
 }
 
-data class GanadorInfo(
-    val nombreGrupo: String,
-    val ganador: String,
-    val fecha: String
-)
-
 @Composable
-private fun GanadorCard(ganadorInfo: GanadorInfo) {
+private fun GanadorCard(resultado: RuletaResult) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -134,21 +147,15 @@ private fun GanadorCard(ganadorInfo: GanadorInfo) {
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    ganadorInfo.ganador,
+                    resultado.ganador,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF5C6BC0)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    stringResource(R.string.grupos_label_grupo_formato, ganadorInfo.nombreGrupo),
+                    "Participantes: ${resultado.participantes.joinToString(", ")}",
                     fontSize = 14.sp,
-                    color = Color.Gray
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    ganadorInfo.fecha,
-                    fontSize = 12.sp,
                     color = Color.Gray
                 )
             }

@@ -15,10 +15,14 @@ class RegistroNavGraph : FeatureNavGraph {
     override fun registerGraph(navGraphBuilder: NavGraphBuilder, navController: NavHostController) {
         navGraphBuilder.composable<Registro> {
             val viewModel: RegistroViewModel = hiltViewModel()
+            val codigo = navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<String>("codigo_invitacion") ?: ""
             RegistroScreen(
                 viewModel = viewModel,
                 onRegistroSuccess = { navController.navigate(Login) },
-                onGoToLogin = { navController.navigateUp() }
+                onGoToLogin = { navController.navigateUp() },
+                codigoInvitacion = codigo
             )
         }
     }

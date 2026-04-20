@@ -64,4 +64,10 @@
     <string name="ver_ganadores_vacio">No hay ganadores de ruleta aún</string>
     <string name="ver_ganadores_vacio_desc">Juega la ruleta al crear un grupo</string>
     <string name="ver_ganadores_monto_extra">+$50</string>
+
+    <string name="default_notification_channel_id">default</string>
+    <string name="notification_permission_title">Habilitar Notificaciones</string>
+    <string name="notification_permission_message">Recibe notificaciones sobre tus grupos y gastos</string>
+    <string name="notification_permission_ok">Aceptar</string>
+    <string name="notification_permission_no_thanks">No, gracias</string>
 </resources>

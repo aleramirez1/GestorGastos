@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,9 +30,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun RegistroScreen(
     viewModel: RegistroViewModel = hiltViewModel(),
     onRegistroSuccess: () -> Unit,
-    onGoToLogin: () -> Unit
+    onGoToLogin: () -> Unit,
+    codigoInvitacion: String = ""
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -40,9 +43,22 @@ fun RegistroScreen(
     val darkBlue = Color(0xFF5C6BC0)
     val purple = Color(0xFF7E57C2)
     val bgColor = Color(0xFFE3F2FD)
+    
+    val codigoEfectivo = codigoInvitacion.ifBlank {
+        context.getSharedPreferences("invitaciones", android.content.Context.MODE_PRIVATE)
+            .getString("codigo_para_registro", "") ?: ""
+    }
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
+            if (codigoEfectivo.isNotBlank()) {
+                context.getSharedPreferences("invitaciones", android.content.Context.MODE_PRIVATE)
+                    .edit()
+                    .putString("codigo_aceptado", codigoEfectivo)
+                    .putString("nombre_nuevo_usuario", nombre)
+                    .remove("codigo_para_registro")
+                    .apply()
+            }
             viewModel.resetState()
             onRegistroSuccess()
         }
@@ -72,6 +88,25 @@ fun RegistroScreen(
                 )
             }
             Spacer(modifier = Modifier.height(40.dp))
+            
+            if (codigoEfectivo.isNotBlank()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("🎉", fontSize = 24.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("Código de invitación válido", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF2E7D32))
+                            Text(codigoEfectivo, fontSize = 12.sp, color = Color(0xFF558B2F))
+                            Text("Al registrarte te unirás al grupo automáticamente", fontSize = 11.sp, color = Color.Gray)
+                        }
+                    }
+                }
+            }
+            
             TextField(
                 value = nombre,
                 onValueChange = { nombre = it },

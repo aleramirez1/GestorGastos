@@ -11,7 +11,7 @@ fun NavigationWrapper(navGraphs: List<FeatureNavGraph>) {
     // Siempre iniciamos en Login para asegurar el flujo correcto
     NavHost(
         navController = navController,
-        startDestination = Login
+        startDestination = Splash
     ) {
         navGraphs.forEach { graph ->
             graph.registerGraph(this, navController)

@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
@@ -19,17 +20,58 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.GestorGastos"
         android:usesCleartextTraffic="true">
+        
+        <service
+            android:name=".core.notifications.data.FCMService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.GestorGastos"
             android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize|keyboardHidden">
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            
+            <!-- Deep Links para invitaciones -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <!-- gestorgastos://invitacion/CODIGO -->
+                <data
+                    android:scheme="gestorgastos"
+                    android:host="invitacion"
+                    android:pathPrefix="/" />
+            </intent-filter>
+            
+            <!-- HTTP/HTTPS Deep Links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <!-- https://gestorgastos.app/invitacion/CODIGO -->
+                <data
+                    android:scheme="https"
+                    android:host="gestorgastos.app"
+                    android:pathPrefix="/invitacion" />
+                    
+                <!-- http://gestorgastos.app/invitacion/CODIGO -->
+                <data
+                    android:scheme="http"
+                    android:host="gestorgastos.app"
+                    android:pathPrefix="/invitacion" />
             </intent-filter>
         </activity>
         

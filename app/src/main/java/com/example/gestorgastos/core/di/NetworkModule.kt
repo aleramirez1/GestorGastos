@@ -40,4 +40,5 @@ object NetworkModule {
     fun provideGastosApi(retrofit: Retrofit): GastosApi {
         return retrofit.create(GastosApi::class.java)
     }
+    
 }

@@ -24,6 +24,7 @@ interface GruposRepository {
     
     suspend fun guardarGrupoLocal(grupo: Grupo)
     suspend fun obtenerGruposLocales(usuarioId: Int): List<Grupo>
+    suspend fun actualizarGrupo(grupo: Grupo)
     suspend fun actualizarGrupoLocal(grupo: Grupo)
     suspend fun eliminarGrupoLocal(grupoId: Int)
 }

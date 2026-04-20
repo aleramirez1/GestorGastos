@@ -29,7 +29,8 @@ class LoginViewModel @Inject constructor(
     private val rotationManager: RotationManager,
     private val activityManager: ActivityManager,
     private val usuarioDao: UsuarioDao,
-    private val sesionDao: SesionDao
+    private val sesionDao: SesionDao,
+    private val notificationManager: com.example.gestorgastos.core.notifications.domain.NotificationManager
 ) : ViewModel() {
 
     companion object {
