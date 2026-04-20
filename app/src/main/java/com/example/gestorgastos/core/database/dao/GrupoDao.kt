@@ -15,6 +15,9 @@ interface GrupoDao {
     
     @Query("SELECT * FROM grupos WHERE usuarioId = :usuarioId ORDER BY timestamp DESC")
     suspend fun getGruposByUsuarioSync(usuarioId: Int): List<GrupoEntity>
+
+    @Query("SELECT * FROM grupos WHERE id = :id")
+    suspend fun getGrupoByIdSync(id: Int): GrupoEntity?
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGrupos(grupos: List<GrupoEntity>)

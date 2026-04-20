@@ -38,6 +38,14 @@ class TokenManager @Inject constructor(@ApplicationContext context: Context) {
         return prefs.getInt("user_id", 0)
     }
 
+    fun saveUserProfilePic(uri: String) {
+        prefs.edit().putString("user_profile_pic", uri).apply()
+    }
+
+    fun getUserProfilePic(): String? {
+        return prefs.getString("user_profile_pic", null)
+    }
+
     fun clearAll() {
         prefs.edit().clear().apply()
     }
