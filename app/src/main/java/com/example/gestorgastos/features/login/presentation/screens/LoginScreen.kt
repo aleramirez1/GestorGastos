@@ -30,13 +30,30 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
     onLoginSuccess: () -> Unit,
-    onGoToRegistro: () -> Unit
+    onGoToRegistro: () -> Unit,
+    onGoToRegistroConCodigo: (String) -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
     var nombre by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
+    var mostrarDialogoUnirse by remember { mutableStateOf(false) }
+    var codigoInvitacion by remember { mutableStateOf("") }
+    var codigoError by remember { mutableStateOf<String?>(null) }
+    
+    LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("invitaciones", android.content.Context.MODE_PRIVATE)
+        val codigoPendiente = prefs.getString("codigo_pendiente", null)
+        if (codigoPendiente != null) {
+            codigoInvitacion = codigoPendiente
+            mostrarDialogoUnirse = true
+            prefs.edit().remove("codigo_pendiente").apply()
+        }
+    }
+    
     val lightBlue = Color(0xFF4FC3F7)
     val darkBlue = Color(0xFF5C6BC0)
     val purple = Color(0xFF7E57C2)
@@ -138,6 +155,19 @@ fun LoginScreen(
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
+            
+            OutlinedButton(
+                onClick = { mostrarDialogoUnirse = true },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = darkBlue
+                ),
+                shape = RoundedCornerShape(25.dp)
+            ) {
+                Text("🎉 Unirse a Grupo", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
             TextButton(onClick = { }) {
                 Text(stringResource(R.string.login_forgot_password), color = darkBlue)
             }
@@ -154,5 +184,89 @@ fun LoginScreen(
                 Text(stringResource(R.string.login_go_to_registro), color = darkBlue)
             }
         }
+        
+        // Diálogo para unirse a grupo
+        if (mostrarDialogoUnirse) {
+            DialogoUnirseGrupo(
+                codigoInvitacion = codigoInvitacion,
+                onCodigoChange = { codigoInvitacion = it; codigoError = null },
+                error = codigoError,
+                onDismiss = { 
+                    mostrarDialogoUnirse = false
+                    codigoInvitacion = ""
+                    codigoError = null
+                },
+                onUnirse = { codigo ->
+                    val codigoLimpio = codigo.trim().uppercase()
+                    if (codigoLimpio.isNotBlank()) {
+                        val prefs = context.getSharedPreferences("invitaciones", android.content.Context.MODE_PRIVATE)
+                        prefs.edit().putString("codigo_para_registro", codigoLimpio).apply()
+                        mostrarDialogoUnirse = false
+                        onGoToRegistroConCodigo(codigoLimpio)
+                    } else {
+                        codigoError = "Ingresa un código válido"
+                    }
+                }
+            )
+        }
     }
+}
+
+
+@Composable
+fun DialogoUnirseGrupo(
+    codigoInvitacion: String,
+    onCodigoChange: (String) -> Unit,
+    error: String? = null,
+    onDismiss: () -> Unit,
+    onUnirse: (String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("🎉", fontSize = 48.sp, modifier = Modifier.padding(bottom = 8.dp))
+                Text("Unirse a Grupo", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color(0xFF5C6BC0))
+            }
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Ingresa el código de invitación que recibiste por WhatsApp",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                OutlinedTextField(
+                    value = codigoInvitacion,
+                    onValueChange = onCodigoChange,
+                    label = { Text("Código de Invitación") },
+                    placeholder = { Text("Ej: GG-GRUP-1234") },                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    isError = error != null,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF5C6BC0),
+                        focusedLabelColor = Color(0xFF5C6BC0)
+                    )
+                )
+                if (error != null) {
+                    Text(text = error, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                } else {
+                    Text("💡 El código empieza con GG-", style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (codigoInvitacion.isNotBlank()) onUnirse(codigoInvitacion) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0)),
+                enabled = codigoInvitacion.isNotBlank()
+            ) { Text("Continuar al registro") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
+        },
+        shape = RoundedCornerShape(16.dp)
+    )
 }

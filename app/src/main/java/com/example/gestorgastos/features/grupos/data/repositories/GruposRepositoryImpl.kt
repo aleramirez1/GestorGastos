@@ -51,10 +51,16 @@ class GruposRepositoryImpl @Inject constructor(
 
     override suspend fun obtenerGrupos(usuarioId: Int): List<Grupo> {
         return try {
-            val grupos = api.obtenerGrupos(usuarioId).map { it.toDomain() }
+            val remotos = api.obtenerGrupos(usuarioId).map { it.toDomain() }
+            val locales = grupoDao.getGruposByUsuarioSync(usuarioId).associateBy { it.id }
+            // Preservar ganadorRuleta guardado localmente, ya que la API no lo maneja
+            val entidades = remotos.map { grupo ->
+                val ganadorLocal = locales[grupo.id]?.ganadorRuleta
+                grupo.copy(ganadorRuleta = ganadorLocal ?: grupo.ganadorRuleta).toEntity()
+            }
             grupoDao.deleteGruposByUsuario(usuarioId)
-            grupoDao.insertGrupos(grupos.map { it.toEntity() })
-            grupos
+            grupoDao.insertGrupos(entidades)
+            entidades.map { it.toDomain() }
         } catch (e: Exception) {
             grupoDao.getGruposByUsuarioSync(usuarioId).map { it.toDomain() }
         }
@@ -138,6 +144,13 @@ class GruposRepositoryImpl @Inject constructor(
     }
 
     override suspend fun actualizarGrupoLocal(grupo: Grupo) {
+        grupoDao.insertGrupo(grupo.toEntity())
+    }
+
+    override suspend fun actualizarGrupo(grupo: Grupo) {
+        try {
+            api.actualizarGrupo(grupo.id, GrupoUpdateRequest(grupo.nombre, grupo.personas))
+        } catch (_: Exception) {}
         grupoDao.insertGrupo(grupo.toEntity())
     }
 

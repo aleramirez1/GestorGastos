@@ -66,7 +66,7 @@ class AppContainer(context: Context) {
             .build()
 
         Retrofit.Builder()
-            .baseUrl("http://54.197.208.12:8000/")
+            .baseUrl("https://api-gastos.freedynamicdns.net/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -113,7 +113,7 @@ class AppContainer(context: Context) {
     }
     
     val activityManager: ActivityManager by lazy {
-        AndroidActivityManager()
+        AndroidActivityManager(context)
     }
     
     fun guardarUsuarioLocal(username: String, email: String, password: String, onResult: (Int) -> Unit) {
@@ -143,7 +143,7 @@ class AppContainer(context: Context) {
             )
             sesionDao.insertSesion(sesion)
             usuarioDao.actualizarUltimoLogin(usuarioId, fecha)
-            Log.d(TAG, "LOGIN - Sesión guardada en SQLite: $username")
+            Log.d(TAG, "LOGIN - Sesion guardada en SQLite: $username")
         }
     }
     

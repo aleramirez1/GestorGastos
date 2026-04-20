@@ -19,7 +19,13 @@ class LoginNavGraph : FeatureNavGraph {
             LoginScreen(
                 viewModel = viewModel,
                 onLoginSuccess = { navController.navigate(Grupos) },
-                onGoToRegistro = { navController.navigate(Registro) }
+                onGoToRegistro = { navController.navigate(Registro) },
+                onGoToRegistroConCodigo = { codigo ->
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("codigo_invitacion", codigo)
+                    navController.navigate(Registro)
+                }
             )
         }
     }

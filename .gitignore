@@ -16,3 +16,6 @@ local.properties
 .idea/
 .kotlin/
 api_gestorgastos02/
+
+app/google-services.json
+google-services.json

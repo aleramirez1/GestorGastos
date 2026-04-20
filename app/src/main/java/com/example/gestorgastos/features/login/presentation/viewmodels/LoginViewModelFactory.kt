@@ -15,10 +15,11 @@ class LoginViewModelFactory(
     private val rotationManager: RotationManager,
     private val activityManager: ActivityManager,
     private val usuarioDao: UsuarioDao,
-    private val sesionDao: SesionDao
+    private val sesionDao: SesionDao,
+    private val notificationManager: com.example.gestorgastos.core.notifications.domain.NotificationManager
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return LoginViewModel(loginUseCase, tokenManager, rotationManager, activityManager, usuarioDao, sesionDao) as T
+        return LoginViewModel(loginUseCase, tokenManager, rotationManager, activityManager, usuarioDao, sesionDao, notificationManager) as T
     }
 }

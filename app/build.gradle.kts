@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -14,11 +15,20 @@ android {
     defaultConfig {
         applicationId = "com.example.gestorgastos"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        targetSdk = 34
+        versionCode = 8
+        versionName = "2.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore/release.keystore")
+            storePassword = "gestorgastos2024"
+            keyAlias = "gestorgastos"
+            keyPassword = "gestorgastos2024"
+        }
     }
 
     buildTypes {
@@ -28,6 +38,18 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+    
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+    
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
     compileOptions {
@@ -73,6 +95,8 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")
     
     // Room
     implementation(libs.room.runtime)
@@ -88,6 +112,13 @@ dependencies {
     implementation(libs.androidx.camera.view)
     
     implementation(libs.coil.compose)
+    
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-messaging")
+    
+    implementation(libs.work.runtime)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

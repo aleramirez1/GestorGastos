@@ -1,4 +1,4 @@
-﻿package com.example.gestorgastos.features.grupos.presentation.screens
+package com.example.gestorgastos.features.grupos.presentation.screens
 
 import android.net.Uri
 import androidx.compose.foundation.Canvas
@@ -43,6 +43,7 @@ fun GruposScreen(
     var numPersonas by remember { mutableStateOf("") }
     val personasInput = remember { mutableStateListOf<String>() }
     var nuevaPersona by remember { mutableStateOf("") }
+    val telefonosPendientes = remember { mutableStateListOf<String>() }
     var montoTeDeben by remember { mutableStateOf("") }
     var descripcionTeDeben by remember { mutableStateOf("") }
     var montoTuDebes by remember { mutableStateOf("") }
@@ -70,8 +71,8 @@ fun GruposScreen(
             when (currentScreen) {
                 "inicio" -> InicioScreen(state, viewModel, darkBlue, lightBlue, onLogout, { currentScreen = it }, onNavigateToVerGanadores)
                 "crear_grupo" -> CrearGrupoScreen(nombreGrupo, { nombreGrupo = it }, numPersonas, { numPersonas = it }, darkBlue, lightBlue, personasInput, viewModel, { fotoTicketUri = it }, { currentScreen = it }, navigateToRuletaWrapper)
-                "agregar_personas" -> AgregarPersonasScreen(nombreGrupo, personasInput, state, darkBlue, lightBlue) { currentScreen = it }
-                "agregar_gasto_inicial" -> AgregarGastoInicialScreen(nombreGrupo, personasInput, montoTeDeben, { montoTeDeben = it }, descripcionTeDeben, { descripcionTeDeben = it }, state, viewModel, darkBlue, lightBlue, purple, { nombreGrupo = "" }, { numPersonas = "" }, fotoTicketUri, { currentScreen = it }, navigateToRuletaWrapper)
+                "agregar_personas" -> AgregarPersonasScreen(nombreGrupo, personasInput, state, viewModel, darkBlue, lightBlue, telefonosPendientes) { currentScreen = it }
+                "agregar_gasto_inicial" -> AgregarGastoInicialScreen(nombreGrupo, personasInput, montoTeDeben, { montoTeDeben = it }, descripcionTeDeben, { descripcionTeDeben = it }, state, viewModel, darkBlue, lightBlue, purple, { nombreGrupo = "" }, { numPersonas = "" }, fotoTicketUri, telefonosPendientes, { currentScreen = it }, navigateToRuletaWrapper)
                 "editar_grupo" -> EditarGrupoScreen(state, viewModel, nuevaPersona, { nuevaPersona = it }, darkBlue, lightBlue, purple) { currentScreen = it }
                 "gastos" -> GastosDetailScreen(state, viewModel, montoTeDeben, { montoTeDeben = it }, descripcionTeDeben, { descripcionTeDeben = it }, montoTuDebes, { montoTuDebes = it }, descripcionTuDebes, { descripcionTuDebes = it }, personaTuDebes, { personaTuDebes = it }, expandedTuDebes, { expandedTuDebes = it }, darkBlue, lightBlue, purple) { currentScreen = it }
             }
@@ -263,7 +264,11 @@ private fun CrearGrupoScreen(
 }
 
 @Composable
-private fun AgregarPersonasScreen(nombreGrupo: String, personasInput: MutableList<String>, state: GruposUiState, darkBlue: Color, lightBlue: Color, navigate: (String) -> Unit) {
+private fun AgregarPersonasScreen(nombreGrupo: String, personasInput: MutableList<String>, state: GruposUiState, vm: GruposViewModel, darkBlue: Color, lightBlue: Color, telefonosPendientes: MutableList<String>, navigate: (String) -> Unit) {
+    val emailsInput = remember { mutableStateListOf<String>().apply { repeat(personasInput.size) { add("") } } }
+    val invitacionesEnviadas = remember { mutableStateListOf<String>() }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { navigate("crear_grupo") }) { Icon(Icons.Default.ArrowBack, contentDescription = null) }
         Text(text = nombreGrupo, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = darkBlue)
@@ -271,30 +276,83 @@ private fun AgregarPersonasScreen(nombreGrupo: String, personasInput: MutableLis
     Spacer(modifier = Modifier.height(16.dp))
     Text(text = stringResource(R.string.grupos_agregar_participantes), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = darkBlue)
     Spacer(modifier = Modifier.height(24.dp))
+
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(20.dp)) {
-            personasInput.forEachIndexed { index, nombre -> 
+            personasInput.forEachIndexed { index, nombre ->
+                Text(text = "Persona ${index + 1}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = darkBlue)
+                Spacer(modifier = Modifier.height(8.dp))
                 TextField(
-                    value = nombre, 
-                    onValueChange = { personasInput[index] = it }, 
-                    label = { Text(stringResource(R.string.grupos_label_persona_n, index + 1)) }, 
-                    modifier = Modifier.fillMaxWidth(), 
-                    colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5), focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent), 
+                    value = nombre,
+                    onValueChange = { personasInput[index] = it },
+                    label = { Text("Nombre") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5), focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
                     shape = RoundedCornerShape(12.dp)
                 )
-                Spacer(modifier = Modifier.height(12.dp)) 
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    TextField(
+                        value = emailsInput.getOrElse(index) { "" },
+                        onValueChange = { if (index < emailsInput.size) emailsInput[index] = it },
+                        label = { Text("Correo electrónico") },
+                        placeholder = { Text("ejemplo@correo.com") },
+                        modifier = Modifier.weight(1f),
+                        colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5), focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val email = emailsInput.getOrElse(index) { "" }
+                            if (email.isNotBlank()) {
+                                if (!telefonosPendientes.contains(email)) telefonosPendientes.add(email)
+                                if (!invitacionesEnviadas.contains(email)) invitacionesEnviadas.add(email)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.height(56.dp)
+                    ) { Text("Invitar", fontSize = 12.sp, color = Color.White) }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
+
+    if (invitacionesEnviadas.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(16.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Invitaciones pendientes (${invitacionesEnviadas.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF2E7D32))
+                Spacer(modifier = Modifier.height(8.dp))
+                invitacionesEnviadas.forEach { email ->
+                    Text(text = email, fontSize = 13.sp, color = Color(0xFF558B2F))
+                }
+                Text(text = "Se enviarán por correo al crear el grupo", fontSize = 11.sp, color = Color.Gray)
+            }
+        }
+    }
+
     Spacer(modifier = Modifier.height(30.dp))
-    Button(onClick = { val validPersonas = personasInput.filter { it.isNotBlank() }; if (validPersonas.isNotEmpty()) { navigate("agregar_gasto_inicial") } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = lightBlue), shape = RoundedCornerShape(25.dp)) { Text(stringResource(R.string.grupos_btn_next), fontSize = 16.sp) }
+    Button(
+        onClick = { val v = personasInput.filter { it.isNotBlank() }; if (v.isNotEmpty()) navigate("agregar_gasto_inicial") },
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = lightBlue),
+        shape = RoundedCornerShape(25.dp)
+    ) { Text(stringResource(R.string.grupos_btn_next), fontSize = 16.sp) }
     if (state.error != null) { Spacer(modifier = Modifier.height(8.dp)); Text(state.error ?: "", color = Color.Red) }
 }
 
 @Composable
-private fun AgregarGastoInicialScreen(nombreGrupo: String, personasInput: MutableList<String>, montoTeDeben: String, onMontoChange: (String) -> Unit, descripcionTeDeben: String, onDescChange: (String) -> Unit, state: GruposUiState, vm: GruposViewModel, darkBlue: Color, lightBlue: Color, purple: Color, clearNombre: () -> Unit, clearNum: () -> Unit, fotoTicketUri: String?, navigate: (String) -> Unit, onNavigateToRuleta: (List<String>, Int) -> Unit = { _, _ -> }) {
+private fun AgregarGastoInicialScreen(nombreGrupo: String, personasInput: MutableList<String>, montoTeDeben: String, onMontoChange: (String) -> Unit, descripcionTeDeben: String, onDescChange: (String) -> Unit, state: GruposUiState, vm: GruposViewModel, darkBlue: Color, lightBlue: Color, purple: Color, clearNombre: () -> Unit, clearNum: () -> Unit, fotoTicketUri: String?, telefonosPendientes: List<String> = emptyList(), navigate: (String) -> Unit, onNavigateToRuleta: (List<String>, Int) -> Unit = { _, _ -> }) {
     val validPersonas = personasInput.filter { it.isNotBlank() }
     var grupoCreado by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
     
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { navigate("agregar_personas") }) { Icon(Icons.Default.ArrowBack, contentDescription = null) }
@@ -346,6 +404,9 @@ private fun AgregarGastoInicialScreen(nombreGrupo: String, personasInput: Mutabl
                     vm.agregarGasto(persona, montoPorPersona, descripcionTeDeben, "te_deben") 
                 } 
             }
+            telefonosPendientes.forEach { email ->
+                vm.enviarInvitacionEmail(context, state.grupoActual!!.nombre, email, state.grupoActual!!.id)
+            }
             onNavigateToRuleta(validPersonas, state.grupoActual!!.id)
         }
     }
@@ -358,12 +419,69 @@ private fun EditarGrupoScreen(state: GruposUiState, vm: GruposViewModel, nuevaPe
     val grupo = state.grupoActual ?: run { navigate("inicio"); return }
     var mostrarInputPersona by remember { mutableStateOf(false) }
     var mostrarInputGasto by remember { mutableStateOf(false) }
+    var mostrarInputInvitacion by remember { mutableStateOf(false) }
+    var emailInvitacion by remember { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
     var montoGasto by remember { mutableStateOf("") }
     var descripcionGasto by remember { mutableStateOf("") }
+    val invitacionesEnviadas = remember { mutableStateListOf<String>() }
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { navigate("inicio") }) { Icon(Icons.Default.ArrowBack, contentDescription = null) }
         Text(text = stringResource(R.string.grupos_editar_titulo, grupo.nombre), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = darkBlue)
     }
+    Spacer(modifier = Modifier.height(24.dp))
+
+    Button(
+        onClick = { mostrarInputInvitacion = !mostrarInputInvitacion },
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0)),
+        shape = RoundedCornerShape(25.dp)
+    ) {
+        Text("Invitar por correo electrónico", fontSize = 16.sp, color = Color.White)
+    }
+
+    if (mostrarInputInvitacion) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                TextField(
+                    value = emailInvitacion,
+                    onValueChange = { emailInvitacion = it },
+                    label = { Text("Correo electrónico") },
+                    placeholder = { Text("ejemplo@correo.com") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5)),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = {
+                        if (emailInvitacion.isNotBlank()) {
+                            vm.enviarInvitacionEmail(context, grupo.nombre, emailInvitacion, grupo.id)
+                            invitacionesEnviadas.add(emailInvitacion)
+                            emailInvitacion = ""
+                            mostrarInputInvitacion = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0)),
+                    shape = RoundedCornerShape(25.dp)
+                ) { Text("Enviar invitación", color = Color.White) }
+            }
+        }
+    }
+
+    if (invitacionesEnviadas.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)), shape = RoundedCornerShape(12.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Invitaciones enviadas (${invitacionesEnviadas.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF2E7D32))
+                Spacer(modifier = Modifier.height(4.dp))
+                invitacionesEnviadas.forEach { email -> Text(text = email, fontSize = 13.sp, color = Color(0xFF558B2F)) }
+            }
+        }
+    }
+    
     Spacer(modifier = Modifier.height(24.dp))
     Text(text = stringResource(R.string.grupos_personas_del_grupo), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = darkBlue)
     Spacer(modifier = Modifier.height(12.dp))

@@ -29,7 +29,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://54.197.208.12:8000/")
+            .baseUrl("https://api-gastos.freedynamicdns.net/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -40,4 +40,5 @@ object NetworkModule {
     fun provideGastosApi(retrofit: Retrofit): GastosApi {
         return retrofit.create(GastosApi::class.java)
     }
+    
 }

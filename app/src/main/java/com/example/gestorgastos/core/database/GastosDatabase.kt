@@ -15,9 +15,10 @@ import com.example.gestorgastos.core.database.converters.Converters
     entities = [
         GrupoEntity::class,
         UsuarioEntity::class,
-        SesionEntity::class
+        SesionEntity::class,
+        com.example.gestorgastos.core.database.entities.InvitacionEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -25,4 +26,5 @@ abstract class GastosDatabase : RoomDatabase() {
     abstract fun grupoDao(): GrupoDao
     abstract fun usuarioDao(): UsuarioDao
     abstract fun sesionDao(): SesionDao
+    abstract fun invitacionDao(): com.example.gestorgastos.core.database.dao.InvitacionDao
 }
