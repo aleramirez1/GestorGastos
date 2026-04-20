@@ -61,6 +61,15 @@ fun LoginScreen(
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
+            val prefs = context.getSharedPreferences("invitaciones", android.content.Context.MODE_PRIVATE)
+            val codigoPendiente = prefs.getString("codigo_para_registro", null)
+            if (!codigoPendiente.isNullOrBlank()) {
+                prefs.edit()
+                    .putString("codigo_aceptado", codigoPendiente)
+                    .putString("nombre_nuevo_usuario", nombre)
+                    .remove("codigo_para_registro")
+                    .apply()
+            }
             onLoginSuccess()
         }
     }
@@ -154,19 +163,6 @@ fun LoginScreen(
                     Text(stringResource(R.string.login_btn), fontSize = 16.sp)
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            OutlinedButton(
-                onClick = { mostrarDialogoUnirse = true },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = darkBlue
-                ),
-                shape = RoundedCornerShape(25.dp)
-            ) {
-                Text("🎉 Unirse a Grupo", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            }
-            
             Spacer(modifier = Modifier.height(16.dp))
             TextButton(onClick = { }) {
                 Text(stringResource(R.string.login_forgot_password), color = darkBlue)

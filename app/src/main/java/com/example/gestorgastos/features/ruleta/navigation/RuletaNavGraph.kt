@@ -19,16 +19,17 @@ class RuletaNavGraph : FeatureNavGraph {
     override fun registerGraph(navGraphBuilder: NavGraphBuilder, navController: NavHostController) {
         navGraphBuilder.composable<Ruleta> { backStackEntry ->
             val ruleta = backStackEntry.toRoute<Ruleta>()
+            
             val gruposEntry = remember(backStackEntry) {
-                navController.getBackStackEntry<Grupos>()
+                runCatching { navController.getBackStackEntry<Grupos>() }.getOrNull()
             }
-            val gruposViewModel: GruposViewModel = hiltViewModel(gruposEntry)
+            val gruposViewModel: GruposViewModel? = gruposEntry?.let { hiltViewModel(it) }
             
             RuletaScreen(
                 participantes = ruleta.participantes,
                 onBack = { navController.popBackStack() },
                 onGanadorSeleccionado = { ganador ->
-                    gruposViewModel.actualizarGanadorRuletaGrupo(ruleta.grupoId, ganador)
+                    gruposViewModel?.actualizarGanadorRuletaGrupo(ruleta.grupoId, ganador)
                     navController.popBackStack()
                 }
             )

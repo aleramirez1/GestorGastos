@@ -18,7 +18,7 @@ import com.example.gestorgastos.core.database.converters.Converters
         SesionEntity::class,
         com.example.gestorgastos.core.database.entities.InvitacionEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

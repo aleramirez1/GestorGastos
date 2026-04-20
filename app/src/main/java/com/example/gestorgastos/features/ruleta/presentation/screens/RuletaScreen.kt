@@ -40,8 +40,8 @@ fun RuletaScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(participantes, personasQueYaRecibieron) {
-        viewModel.setParticipantes(participantes, personasQueYaRecibieron)
+    LaunchedEffect(participantes) {
+        viewModel.setParticipantes(participantes)
     }
 
     Scaffold(
@@ -70,14 +70,11 @@ fun RuletaScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            if (state.participantesActivos.isEmpty()) {
+            if (state.participantes.isEmpty()) {
                 Text(stringResource(R.string.ruleta_no_participantes), fontSize = 18.sp)
-                if (state.personasQueYaRecibieron.isNotEmpty()) {
-                    Text("¡Todos ya han aportado!", fontSize = 16.sp, color = Color.Gray)
-                }
             } else {
                 Text(
-                    text = if (state.personasQueYaRecibieron.isNotEmpty()) "Turno de los que faltan" else "Todos participan",
+                    text = "Participantes",
                     fontSize = 14.sp,
                     color = Color(0xFF5C6BC0),
                     fontWeight = FontWeight.Bold
@@ -94,7 +91,7 @@ fun RuletaScreen(
                             .rotate(state.currentRotation),
                         contentAlignment = Alignment.Center
                     ) {
-                        RuletaWheel(participantes = state.participantesActivos)
+                        RuletaWheel(participantes = state.participantes)
                     }
                     
                     Box(

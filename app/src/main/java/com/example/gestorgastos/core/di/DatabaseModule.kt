@@ -3,7 +3,6 @@ package com.example.gestorgastos.core.di
 import android.content.Context
 import androidx.room.Room
 import com.example.gestorgastos.core.database.GastosDatabase
-import com.example.gestorgastos.core.database.dao.GastoDao
 import com.example.gestorgastos.core.database.dao.GrupoDao
 import com.example.gestorgastos.core.database.dao.SesionDao
 import com.example.gestorgastos.core.database.dao.UsuarioDao
@@ -48,7 +47,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideGastoDao(database: GastosDatabase): GastoDao {
-        return database.gastoDao()
+    fun provideInvitacionDao(database: GastosDatabase): com.example.gestorgastos.core.database.dao.InvitacionDao {
+        return database.invitacionDao()
     }
 }

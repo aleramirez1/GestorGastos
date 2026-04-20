@@ -57,6 +57,10 @@ fun GruposScreen(
     val bgColor = Color(0xFFE3F2FD)
     
     var screenBeforeRuleta by remember { mutableStateOf<String?>(null) }
+    var mostrarDialogoUnirse by remember { mutableStateOf(false) }
+    var codigoUnirse by remember { mutableStateOf("") }
+    var errorCodigo by remember { mutableStateOf<String?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
     
     val navigateToRuletaWrapper: (List<String>, Int) -> Unit = { participantes, grupoId ->
         screenBeforeRuleta = currentScreen
@@ -69,7 +73,7 @@ fun GruposScreen(
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
             Spacer(modifier = Modifier.height(100.dp))
             when (currentScreen) {
-                "inicio" -> InicioScreen(state, viewModel, darkBlue, lightBlue, onLogout, { currentScreen = it }, onNavigateToVerGanadores)
+                "inicio" -> InicioScreen(state, viewModel, darkBlue, lightBlue, onLogout, { currentScreen = it }, onNavigateToVerGanadores, onUnirseGrupo = { mostrarDialogoUnirse = true })
                 "crear_grupo" -> CrearGrupoScreen(nombreGrupo, { nombreGrupo = it }, numPersonas, { numPersonas = it }, darkBlue, lightBlue, personasInput, viewModel, { fotoTicketUri = it }, { currentScreen = it }, navigateToRuletaWrapper)
                 "agregar_personas" -> AgregarPersonasScreen(nombreGrupo, personasInput, state, viewModel, darkBlue, lightBlue, telefonosPendientes) { currentScreen = it }
                 "agregar_gasto_inicial" -> AgregarGastoInicialScreen(nombreGrupo, personasInput, montoTeDeben, { montoTeDeben = it }, descripcionTeDeben, { descripcionTeDeben = it }, state, viewModel, darkBlue, lightBlue, purple, { nombreGrupo = "" }, { numPersonas = "" }, fotoTicketUri, telefonosPendientes, { currentScreen = it }, navigateToRuletaWrapper)
@@ -77,11 +81,60 @@ fun GruposScreen(
                 "gastos" -> GastosDetailScreen(state, viewModel, montoTeDeben, { montoTeDeben = it }, descripcionTeDeben, { descripcionTeDeben = it }, montoTuDebes, { montoTuDebes = it }, descripcionTuDebes, { descripcionTuDebes = it }, personaTuDebes, { personaTuDebes = it }, expandedTuDebes, { expandedTuDebes = it }, darkBlue, lightBlue, purple) { currentScreen = it }
             }
         }
+
+        if (mostrarDialogoUnirse) {
+            androidx.compose.ui.window.Dialog(onDismissRequest = { mostrarDialogoUnirse = false; codigoUnirse = ""; errorCodigo = null }) {
+                Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp)) {
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        Text("🎉 Unirse a un grupo", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = darkBlue)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Ingresa el código de invitación que recibiste", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = codigoUnirse,
+                            onValueChange = { codigoUnirse = it.uppercase(); errorCodigo = null },
+                            label = { Text("Código (ej: GG34-5678)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            isError = errorCodigo != null,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        if (errorCodigo != null) {
+                            Text(errorCodigo!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Button(
+                            onClick = {
+                                if (codigoUnirse.isNotBlank()) {
+                                    val prefs = context.getSharedPreferences("invitaciones", android.content.Context.MODE_PRIVATE)
+                                    val nombreUsuario = viewModel.obtenerNombreUsuario()
+                                    prefs.edit()
+                                        .putString("codigo_aceptado", codigoUnirse)
+                                        .putString("nombre_nuevo_usuario", nombreUsuario)
+                                        .apply()
+                                    mostrarDialogoUnirse = false
+                                    codigoUnirse = ""
+                                    viewModel.procesarCodigoInvitacionPendiente(context)
+                                } else {
+                                    errorCodigo = "Ingresa un código válido"
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            shape = RoundedCornerShape(25.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = darkBlue)
+                        ) { Text("Unirme al grupo") }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(onClick = { mostrarDialogoUnirse = false; codigoUnirse = ""; errorCodigo = null }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Cancelar")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun InicioScreen(state: GruposUiState, vm: GruposViewModel, darkBlue: Color, lightBlue: Color, onLogout: () -> Unit, navigate: (String) -> Unit, onNavigateToVerGanadores: () -> Unit = {}) {
+private fun InicioScreen(state: GruposUiState, vm: GruposViewModel, darkBlue: Color, lightBlue: Color, onLogout: () -> Unit, navigate: (String) -> Unit, onNavigateToVerGanadores: () -> Unit = {}, onUnirseGrupo: () -> Unit = {}) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onLogout) { Icon(Icons.Default.ArrowBack, contentDescription = null, tint = darkBlue) }
         Text(text = stringResource(R.string.grupos_titulo), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = darkBlue)
@@ -111,6 +164,15 @@ private fun InicioScreen(state: GruposUiState, vm: GruposViewModel, darkBlue: Co
     Spacer(modifier = Modifier.height(12.dp))
     Button(onClick = onNavigateToVerGanadores, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD54F)), shape = RoundedCornerShape(25.dp)) {
         Text(stringResource(R.string.grupos_btn_personas), fontSize = 16.sp, color = Color(0xFF5C6BC0), fontWeight = FontWeight.Bold)
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+    OutlinedButton(
+        onClick = onUnirseGrupo,
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        shape = RoundedCornerShape(25.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = darkBlue)
+    ) {
+        Text("🎉 Unirse a un grupo", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
     if (state.error != null) { Spacer(modifier = Modifier.height(8.dp)); Text(state.error ?: "", color = Color.Red) }
 }

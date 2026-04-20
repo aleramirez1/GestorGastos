@@ -157,4 +157,8 @@ class GruposRepositoryImpl @Inject constructor(
     override suspend fun eliminarGrupoLocal(grupoId: Int) {
         grupoDao.deleteGrupo(grupoId)
     }
+
+    override suspend fun asociarUsuarioAGrupo(grupoId: Int, usuarioId: Int): Grupo {
+        return api.asociarUsuarioAGrupo(grupoId, usuarioId).toDomain()
+    }
 }

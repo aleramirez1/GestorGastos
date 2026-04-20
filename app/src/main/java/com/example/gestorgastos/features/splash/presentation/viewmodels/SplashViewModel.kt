@@ -32,15 +32,15 @@ class SplashViewModel @Inject constructor(
     private fun checkAuthAndNavigate() {
         viewModelScope.launch {
             delay(2000)
-            
-            val isAuthenticated = checkAuthStatusUseCase()
-            
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    isAuthenticated = isAuthenticated,
-                    navigationReady = true
-                )
+            try {
+                val isAuthenticated = checkAuthStatusUseCase()
+                _uiState.update {
+                    it.copy(isLoading = false, isAuthenticated = isAuthenticated, navigationReady = true)
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isLoading = false, isAuthenticated = false, navigationReady = true)
+                }
             }
         }
     }
