@@ -4,7 +4,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.gestorgastos.core.navigation.FeatureNavGraph
-import com.example.gestorgastos.core.navigation.Grupos
+import com.example.gestorgastos.core.navigation.Home
 import com.example.gestorgastos.core.navigation.Login
 import com.example.gestorgastos.core.navigation.Splash
 import com.example.gestorgastos.features.splash.presentation.screens.SplashScreen
@@ -20,7 +20,7 @@ class SplashNavGraph : FeatureNavGraph {
                     }
                 },
                 onNavigateToGrupos = {
-                    navController.navigate(Grupos) {
+                    navController.navigate(Home) {
                         popUpTo<Splash> { inclusive = true }
                     }
                 }

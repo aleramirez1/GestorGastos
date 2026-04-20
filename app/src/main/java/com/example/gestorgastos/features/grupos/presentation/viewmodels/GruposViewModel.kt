@@ -34,22 +34,34 @@ class GruposViewModel @Inject constructor(
 
     init {
         cargarGrupos()
+        cargarDatosUsuario()
     }
 
-    fun procesarCodigoInvitacionPendiente(context: android.content.Context) {
+    fun onSearchQueryChange(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+    }
+
+    private fun cargarDatosUsuario() {
+        val uri = tokenManager.getUserProfilePic()
+        val nombre = tokenManager.getUserName()
+        _uiState.update { it.copy(fotoPerfil = uri, nombreUsuario = nombre) }
+    }
+
+    fun procesarCodigoInvitacionPendiente(context: android.content.Context, codigoManual: String? = null) {
         val prefs = context.getSharedPreferences("invitaciones", android.content.Context.MODE_PRIVATE)
-        val codigoAceptado = prefs.getString("codigo_aceptado", null) ?: return
-        val nombreNuevo = prefs.getString("nombre_nuevo_usuario", null) ?: return
-        prefs.edit().remove("codigo_aceptado").remove("nombre_nuevo_usuario").apply()
+        val codigoAceptado = codigoManual ?: prefs.getString("codigo_aceptado", null) ?: return
+        val nombreNuevo = tokenManager.getUserName() ?: "Nuevo Miembro"
+        
+        if (codigoManual == null) {
+            prefs.edit().remove("codigo_aceptado").remove("nombre_nuevo_usuario").apply()
+        }
 
         val usuarioId = tokenManager.getUserId()
-        android.util.Log.d("GruposVM", "Buscando código: '$codigoAceptado'")
 
         val db = com.google.firebase.database.FirebaseDatabase
             .getInstance("https://tests-abe52-default-rtdb.firebaseio.com/")
             .getReference("invitaciones")
 
-        // Buscar directamente por el código como clave del nodo
         db.child(codigoAceptado).get()
             .addOnSuccessListener { snapshot ->
                 val invitacion = snapshot.value as? Map<*, *>
@@ -61,38 +73,18 @@ class GruposViewModel @Inject constructor(
                         is Double -> raw.toInt()
                         else -> 0
                     }
-                    android.util.Log.d("GruposVM", "Encontrado: grupo=$grupoNombre id=$gId")
                     guardarGrupoLocalYCargar(gId, grupoNombre, nombreNuevo, usuarioId)
                 } else {
-                    // No encontrado como clave directa, buscar por campo codigo_invitacion
-                    db.orderByChild("codigo_invitacion").equalTo(codigoAceptado).get()
-                        .addOnSuccessListener { snap ->
-                            val inv = snap.children.firstOrNull()?.value as? Map<*, *>
-                            if (inv != null) {
-                                val grupoNombre = inv["grupo_nombre"] as? String ?: "Grupo"
-                                val gId = when (val raw = inv["grupo_id"]) {
-                                    is Long -> raw.toInt()
-                                    is Int -> raw
-                                    is Double -> raw.toInt()
-                                    else -> 0
-                                }
-                                guardarGrupoLocalYCargar(gId, grupoNombre, nombreNuevo, usuarioId)
-                            } else {
-                                _uiState.update { it.copy(error = "Código '$codigoAceptado' no encontrado") }
-                            }
-                        }
-                        .addOnFailureListener { e ->
-                            _uiState.update { it.copy(error = "Error: ${e.message}") }
-                        }
+                    _uiState.update { it.copy(error = "Código no encontrado") }
                 }
             }
             .addOnFailureListener { e ->
-                _uiState.update { it.copy(error = "Error de conexión: ${e.message}") }
+                _uiState.update { it.copy(error = "Error: ${e.message}") }
             }
     }
 
     private fun guardarGrupoLocalYCargar(grupoId: Int, grupoNombre: String, nombreNuevo: String, usuarioId: Int) {
-        val grupoLocal = com.example.gestorgastos.features.grupos.domain.entities.Grupo(
+        val grupoLocal = Grupo(
             id = grupoId,
             nombre = grupoNombre,
             usuarioId = usuarioId,
@@ -102,9 +94,8 @@ class GruposViewModel @Inject constructor(
         )
         viewModelScope.launch {
             repository.guardarGrupoLocal(grupoLocal)
-            
-            val locales = repository.obtenerGruposLocales(usuarioId)
-            _uiState.update { it.copy(grupos = locales, isLoading = false, error = null) }
+            repository.agregarPersona(grupoId, nombreNuevo)
+            cargarGrupos()
             
             try {
                 notificationManager.showLocalNotification(
@@ -118,21 +109,6 @@ class GruposViewModel @Inject constructor(
 
     fun obtenerNombreUsuario(): String = tokenManager.getUserName() ?: ""
 
-    private fun extraerGrupoIdDeCodigo(codigo: String): Int? {
-        val limpio = codigo.trim().uppercase()
-        
-        // Formato GG{id}-{random}, ej: GG34-5678
-        if (limpio.startsWith("GG")) {
-            val sinPrefijo = limpio.removePrefix("GG")
-            val id = sinPrefijo.substringBefore("-").toIntOrNull()
-            if (id != null && id > 0) return id
-        }
-        
-        // Formato GG-{nombre}-{random}, ej: GG-GRUP-1234 (formato viejo)
-        // En este caso no podemos extraer el grupoId, retornamos null
-        return null
-    }
-
     fun cargarGrupos() {
         val usuarioId = tokenManager.getUserId()
         if (usuarioId == 0) {
@@ -142,12 +118,8 @@ class GruposViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val remotos = repository.obtenerGrupos(usuarioId)
-                val locales = repository.obtenerGruposLocales(usuarioId)
-                val todosIds = remotos.map { it.id }.toSet()
-                val soloLocales = locales.filter { it.id !in todosIds }
-                val todos = remotos + soloLocales
-                _uiState.update { it.copy(isLoading = false, grupos = todos) }
+                val grupos = repository.obtenerGrupos(usuarioId)
+                _uiState.update { it.copy(isLoading = false, grupos = grupos) }
             } catch (e: Exception) {
                 val locales = repository.obtenerGruposLocales(usuarioId)
                 _uiState.update { it.copy(isLoading = false, grupos = locales) }
@@ -155,52 +127,99 @@ class GruposViewModel @Inject constructor(
         }
     }
 
-    fun crearGrupo(nombre: String, personas: List<String>, fotoTicketUri: String? = null, ganadorRuleta: String? = null) {
+    fun crearGrupo(
+        nombre: String, 
+        personas: List<String>, 
+        fotoTicketUri: String? = null, 
+        ganadorRuleta: String? = null,
+        isAhorro: Boolean = false,
+        metaAhorro: Double = 0.0,
+        fechaLimite: String? = null
+    ) {
         val usuarioId = tokenManager.getUserId()
         if (usuarioId == 0) return
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val nuevoGrupo = repository.crearGrupo(nombre, personas, usuarioId)
+                val nuevoGrupoBase = repository.crearGrupo(nombre, personas, usuarioId, isAhorro, metaAhorro, fechaLimite)
+                val nuevoGrupo = nuevoGrupoBase.copy(
+                    fotoTicketUri = fotoTicketUri,
+                    ganadorRuleta = ganadorRuleta
+                )
+                
+                repository.actualizarGrupoLocal(nuevoGrupo)
 
-                try {
-                    alertManager.vibrate(500)
-                    repeat(3) {
-                        flashlightManager.turnOn()
-                        delay(200)
-                        flashlightManager.turnOff()
-                        delay(200)
-                    }
-                } catch (_: Exception) {}
+                alertManager.vibrate(500)
+                repeat(3) {
+                    flashlightManager.turnOn()
+                    delay(200)
+                    flashlightManager.turnOff()
+                    delay(200)
+                }
 
-                try {
-                    notificationManager.showLocalNotification(
-                        title = "Grupo Creado",
-                        message = "El grupo '$nombre' ha sido creado exitosamente",
-                        channelId = "grupos"
-                    )
-                } catch (_: Exception) {}
+                notificationManager.showLocalNotification(
+                    title = "Grupo Creado",
+                    message = "El grupo '$nombre' ha sido creado",
+                    channelId = "grupos"
+                )
 
                 _uiState.update {
                     it.copy(isLoading = false, grupos = it.grupos + nuevoGrupo, grupoActual = nuevoGrupo)
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Error al crear grupo: ${e.message}") }
+                _uiState.update { it.copy(isLoading = false, error = "Error: ${e.message}") }
             }
         }
     }
-    
-    fun setGanadorRuleta(ganador: String) {
-        _uiState.update { it.copy(ganadorRuleta = ganador) }
+
+    fun finalizarMeta(grupoId: Int) {
+        _uiState.update { it.copy(isLoading = true) }
+        viewModelScope.launch {
+            try {
+                repository.eliminarGrupo(grupoId)
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        grupos = state.grupos.filter { it.id != grupoId },
+                        grupoActual = null
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = "Error: ${e.message}") }
+            }
+        }
     }
-    
+
+    fun seleccionarGrupo(grupo: Grupo) {
+        _uiState.update { it.copy(grupoActual = grupo) }
+    }
+
+    fun agregarGasto(persona: String, monto: Double, descripcion: String, tipo: String, comprobanteUri: String? = null) {
+        val grupoActual = _uiState.value.grupoActual ?: return
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val grupoActualizado = repository.agregarGasto(grupoActual.id, persona, monto, descripcion, tipo, comprobanteUri)
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        grupoActual = grupoActualizado,
+                        grupos = state.grupos.map { if (it.id == grupoActual.id) grupoActualizado else it }
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = "Error: ${e.message}") }
+            }
+        }
+    }
+
     fun actualizarGanadorRuletaGrupo(grupoId: Int, ganador: String) {
         viewModelScope.launch {
             try {
-                val grupoActualizado = _uiState.value.grupos.find { it.id == grupoId }?.copy(ganadorRuleta = ganador)
-                if (grupoActualizado != null) {
+                val grupoExistente = _uiState.value.grupos.find { it.id == grupoId }
+                if (grupoExistente != null) {
+                    val grupoActualizado = grupoExistente.copy(ganadorRuleta = ganador)
                     repository.actualizarGrupo(grupoActualizado)
-
                     _uiState.update { state ->
                         state.copy(
                             grupos = state.grupos.map { if (it.id == grupoId) grupoActualizado else it },
@@ -212,43 +231,6 @@ class GruposViewModel @Inject constructor(
                 _uiState.update { it.copy(error = "Error al actualizar ganador: ${e.message}") }
             }
         }
-    }
-
-    fun seleccionarGrupo(grupo: Grupo) {
-        _uiState.update { it.copy(grupoActual = grupo) }
-    }
-
-    fun agregarGasto(persona: String, monto: Double, descripcion: String, tipo: String) {
-        val grupoActual = _uiState.value.grupoActual ?: return
-        _uiState.update { it.copy(isLoading = true, error = null) }
-        viewModelScope.launch {
-            try {
-                val grupoActualizado = repository.agregarGasto(grupoActual.id, persona, monto, descripcion, tipo)
-                _uiState.update { state ->
-                    state.copy(
-                        isLoading = false,
-                        grupoActual = grupoActualizado,
-                        grupos = state.grupos.map { if (it.id == grupoActual.id) grupoActualizado else it }
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Error al agregar gasto: ${e.message}") }
-            }
-        }
-    }
-
-    fun tomarFotoGasto(): Uri? {
-        var photoUri: Uri? = null
-        viewModelScope.launch {
-            val result = cameraManager.takePicture()
-            result.onSuccess { uri ->
-                photoUri = uri
-                _uiState.update { it.copy(fotoGastoUri = uri.toString()) }
-            }.onFailure { e ->
-                _uiState.update { it.copy(error = e.message) }
-            }
-        }
-        return photoUri
     }
 
     fun eliminarGrupo(grupoId: Int) {
@@ -348,7 +330,7 @@ class GruposViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val usuarioNombre = tokenManager.getUserName() ?: "alguien"
+                val usuarioNombre = tokenManager.getUserName() ?: "Miembro"
 
                 val entity = com.example.gestorgastos.core.database.entities.InvitacionEntity(
                     grupoId = grupoId,
@@ -377,15 +359,11 @@ class GruposViewModel @Inject constructor(
                     .child(codigoInvitacion)
                     .setValue(invitacionData)
                     .addOnSuccessListener {
-                        android.util.Log.d("GruposVM", "Invitación guardada en Firebase para $email")
                         notificationManager.showLocalNotification(
                             title = "Invitación enviada",
                             message = "Se envió invitación a $email",
                             channelId = "grupos"
                         )
-                    }
-                    .addOnFailureListener { e ->
-                        _uiState.update { it.copy(error = "Error al enviar: ${e.message}") }
                     }
 
             } catch (e: Exception) {
@@ -393,40 +371,4 @@ class GruposViewModel @Inject constructor(
             }
         }
     }
-
-    fun unirseAlGrupoPorCodigo(codigo: String, nombreUsuario: String) {
-        viewModelScope.launch {
-            try {
-                val invitaciones = repository.obtenerGruposLocales(0)
-                val usuarioId = tokenManager.getUserId()
-                val grupos = repository.obtenerGrupos(usuarioId)
-                
-                grupos.forEach { grupo ->
-                    val grupoActualizado = repository.agregarPersona(grupo.id, nombreUsuario)
-                    if (grupoActualizado != null) {
-                        _uiState.update { state ->
-                            state.copy(
-                                grupos = state.grupos.map { if (it.id == grupo.id) grupoActualizado else it },
-                                error = null
-                            )
-                        }
-                        notificationManager.showLocalNotification(
-                            title = "Te uniste al grupo",
-                            message = "Ahora eres parte de ${grupo.nombre}",
-                            channelId = "grupos"
-                        )
-                        return@launch
-                    }
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Código inválido o expirado") }
-            }
-        }
-    }
-
-    private fun validarTelefono(telefono: String): Boolean {
-        val limpio = telefono.replace(Regex("[^0-9+]"), "")
-        return limpio.length >= 10
-    }
-
 }

@@ -8,6 +8,7 @@ import com.example.gestorgastos.features.grupos.data.datasources.remote.model.Ga
 import com.example.gestorgastos.features.grupos.data.datasources.remote.model.GastoEditRequest
 import com.example.gestorgastos.features.grupos.data.datasources.remote.model.GrupoRequest
 import com.example.gestorgastos.features.grupos.data.datasources.remote.model.GrupoUpdateRequest
+import com.example.gestorgastos.features.grupos.domain.entities.GastoGrupo
 import com.example.gestorgastos.features.grupos.domain.entities.Grupo
 import com.example.gestorgastos.features.grupos.domain.repositories.GruposRepository
 import com.example.gestorgastos.features.login.data.datasources.local.TokenManager
@@ -19,30 +20,66 @@ class GruposRepositoryImpl @Inject constructor(
     private val tokenManager: TokenManager
 ) : GruposRepository {
 
-    private fun GrupoEntity.toDomain() = Grupo(
-        id = id, nombre = nombre, usuarioId = usuarioId,
-        fechaCreacion = fechaCreacion, personas = personas,
-        gastos = emptyList(), fotoTicketUri = fotoTicketUri,
-        ganadorRuleta = ganadorRuleta
-    )
+    private fun mapToDomain(entity: GrupoEntity): Grupo {
+        return Grupo(
+            id = entity.id,
+            nombre = entity.nombre,
+            usuarioId = entity.usuarioId,
+            fechaCreacion = entity.fechaCreacion,
+            personas = entity.personas,
+            gastos = emptyList(), 
+            fotoTicketUri = entity.fotoTicketUri,
+            ganadorRuleta = entity.ganadorRuleta,
+            isAhorro = entity.isAhorro,
+            metaAhorro = entity.metaAhorro,
+            fechaLimite = entity.fechaLimite,
+            personasQueYaRecibieron = entity.personasQueYaRecibieron
+        )
+    }
 
     private fun Grupo.toEntity() = GrupoEntity(
         id = id, nombre = nombre, usuarioId = usuarioId,
         personas = personas, fechaCreacion = fechaCreacion,
-        fotoTicketUri = fotoTicketUri, ganadorRuleta = ganadorRuleta
+        fotoTicketUri = fotoTicketUri, ganadorRuleta = ganadorRuleta,
+        isAhorro = isAhorro,
+        metaAhorro = metaAhorro,
+        fechaLimite = fechaLimite,
+        personasQueYaRecibieron = personasQueYaRecibieron
     )
 
-    override suspend fun crearGrupo(nombre: String, personas: List<String>, usuarioId: Int): Grupo {
+    override suspend fun crearGrupo(
+        nombre: String, 
+        personas: List<String>, 
+        usuarioId: Int,
+        isAhorro: Boolean,
+        metaAhorro: Double,
+        fechaLimite: String?
+    ): Grupo {
         return try {
-            val grupo = api.crearGrupo(GrupoRequest(nombre, personas, usuarioId)).toDomain()
+            val response = api.crearGrupo(
+                GrupoRequest(
+                    nombre = nombre, 
+                    personas = personas, 
+                    usuarioId = usuarioId,
+                    isAhorro = isAhorro,
+                    metaAhorro = metaAhorro,
+                    fechaLimite = fechaLimite
+                )
+            )
+            val grupo = response.toDomain()
             grupoDao.insertGrupo(grupo.toEntity())
             grupo
         } catch (e: Exception) {
             val grupo = Grupo(
                 id = System.currentTimeMillis().toInt(),
-                nombre = nombre, usuarioId = usuarioId,
+                nombre = nombre, 
+                usuarioId = usuarioId,
                 fechaCreacion = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()),
-                personas = personas, gastos = emptyList()
+                personas = personas, 
+                gastos = emptyList(),
+                isAhorro = isAhorro,
+                metaAhorro = metaAhorro,
+                fechaLimite = fechaLimite
             )
             grupoDao.insertGrupo(grupo.toEntity())
             grupo
@@ -51,45 +88,41 @@ class GruposRepositoryImpl @Inject constructor(
 
     override suspend fun obtenerGrupos(usuarioId: Int): List<Grupo> {
         return try {
-            val remotos = api.obtenerGrupos(usuarioId).map { it.toDomain() }
-            val locales = grupoDao.getGruposByUsuarioSync(usuarioId).associateBy { it.id }
-            // Preservar ganadorRuleta guardado localmente, ya que la API no lo maneja
-            val entidades = remotos.map { grupo ->
-                val ganadorLocal = locales[grupo.id]?.ganadorRuleta
-                grupo.copy(ganadorRuleta = ganadorLocal ?: grupo.ganadorRuleta).toEntity()
+            val response = api.obtenerGrupos(usuarioId)
+            val grupos = response.map { it.toDomain() }
+            val locales = grupoDao.getGruposByUsuarioSync(usuarioId)
+            
+            val gruposParaGuardar = grupos.map { remoto ->
+                val local = locales.find { it.id == remoto.id }
+                if (local != null && local.isAhorro && !remoto.isAhorro) {
+                    remoto.copy(
+                        isAhorro = true,
+                        metaAhorro = local.metaAhorro,
+                        fechaLimite = local.fechaLimite
+                    )
+                } else {
+                    remoto
+                }
             }
+
             grupoDao.deleteGruposByUsuario(usuarioId)
-            grupoDao.insertGrupos(entidades)
-            entidades.map { it.toDomain() }
+            grupoDao.insertGrupos(gruposParaGuardar.map { it.toEntity() })
+            gruposParaGuardar
         } catch (e: Exception) {
-            grupoDao.getGruposByUsuarioSync(usuarioId).map { it.toDomain() }
+            grupoDao.getGruposByUsuarioSync(usuarioId).map { mapToDomain(it) }
         }
     }
 
     override suspend fun obtenerGrupo(id: Int): Grupo {
-        return try {
-            api.obtenerGrupo(id).toDomain()
-        } catch (e: Exception) {
-            grupoDao.getGruposByUsuarioSync(tokenManager.getUserId())
-                .firstOrNull { it.id == id }?.toDomain()
-                ?: throw e
-        }
+        val response = api.obtenerGrupo(id)
+        return response.toDomain()
     }
 
-    override suspend fun actualizarGrupo(id: Int, nombre: String?, personas: List<String>?): Grupo {
-        return try {
-            val grupo = api.actualizarGrupo(id, GrupoUpdateRequest(nombre, personas)).toDomain()
-            grupoDao.insertGrupo(grupo.toEntity())
-            grupo
-        } catch (e: Exception) {
-            val local = grupoDao.getGruposByUsuarioSync(tokenManager.getUserId()).first { it.id == id }
-            val updated = local.copy(
-                nombre = nombre ?: local.nombre,
-                personas = personas ?: local.personas
-            )
-            grupoDao.insertGrupo(updated)
-            updated.toDomain()
-        }
+    override suspend fun actualizarGrupo(grupo: Grupo): Grupo {
+        val response = api.actualizarGrupo(grupo.id, GrupoUpdateRequest(grupo.nombre, grupo.personas, grupo.ganadorRuleta))
+        val grupoActualizado = response.toDomain()
+        grupoDao.insertGrupo(grupoActualizado.toEntity())
+        return grupoActualizado
     }
 
     override suspend fun eliminarGrupo(id: Int) {
@@ -98,41 +131,58 @@ class GruposRepositoryImpl @Inject constructor(
     }
 
     override suspend fun agregarPersona(grupoId: Int, persona: String): Grupo {
-        return try {
-            val grupo = api.agregarPersona(grupoId, persona).toDomain()
-            grupoDao.insertGrupo(grupo.toEntity())
-            grupo
-        } catch (e: Exception) {
-            val local = grupoDao.getGruposByUsuarioSync(tokenManager.getUserId()).first { it.id == grupoId }
-            val updated = local.copy(personas = local.personas + persona)
-            grupoDao.insertGrupo(updated)
-            updated.toDomain()
-        }
+        val response = api.agregarPersona(grupoId, persona)
+        val grupoRemoto = response.toDomain()
+        val local = grupoDao.getGrupoByIdSync(grupoId)
+        val grupoFinal = if (local != null && local.isAhorro && !grupoRemoto.isAhorro) {
+            grupoRemoto.copy(isAhorro = true, metaAhorro = local.metaAhorro, fechaLimite = local.fechaLimite)
+        } else grupoRemoto
+        actualizarGrupoLocal(grupoFinal)
+        return grupoFinal
     }
 
     override suspend fun eliminarPersona(grupoId: Int, persona: String): Grupo {
-        return try {
-            val grupo = api.eliminarPersona(grupoId, persona).toDomain()
-            grupoDao.insertGrupo(grupo.toEntity())
-            grupo
-        } catch (e: Exception) {
-            val local = grupoDao.getGruposByUsuarioSync(tokenManager.getUserId()).first { it.id == grupoId }
-            val updated = local.copy(personas = local.personas.filter { it != persona })
-            grupoDao.insertGrupo(updated)
-            updated.toDomain()
-        }
+        val response = api.eliminarPersona(grupoId, persona)
+        val grupoRemoto = response.toDomain()
+        val local = grupoDao.getGrupoByIdSync(grupoId)
+        val grupoFinal = if (local != null && local.isAhorro && !grupoRemoto.isAhorro) {
+            grupoRemoto.copy(isAhorro = true, metaAhorro = local.metaAhorro, fechaLimite = local.fechaLimite)
+        } else grupoRemoto
+        actualizarGrupoLocal(grupoFinal)
+        return grupoFinal
     }
 
-    override suspend fun agregarGasto(grupoId: Int, persona: String, monto: Double, descripcion: String, tipo: String): Grupo {
-        return api.agregarGasto(grupoId, GastoCreateRequest(persona, monto, descripcion, tipo)).toDomain()
+    override suspend fun agregarGasto(grupoId: Int, persona: String, monto: Double, descripcion: String, tipo: String, comprobanteUri: String?): Grupo {
+        val response = api.agregarGasto(grupoId, GastoCreateRequest(persona, monto, descripcion, tipo, comprobanteUri))
+        val grupoRemoto = response.toDomain()
+        val local = grupoDao.getGrupoByIdSync(grupoId)
+        val grupoFinal = if (local != null && local.isAhorro && !grupoRemoto.isAhorro) {
+            grupoRemoto.copy(isAhorro = true, metaAhorro = local.metaAhorro, fechaLimite = local.fechaLimite)
+        } else grupoRemoto
+        actualizarGrupoLocal(grupoFinal)
+        return grupoFinal
     }
 
     override suspend fun eliminarGasto(grupoId: Int, gastoId: Int): Grupo {
-        return api.eliminarGasto(grupoId, gastoId).toDomain()
+        val response = api.eliminarGasto(grupoId, gastoId)
+        val grupoRemoto = response.toDomain()
+        val local = grupoDao.getGrupoByIdSync(grupoId)
+        val grupoFinal = if (local != null && local.isAhorro && !grupoRemoto.isAhorro) {
+            grupoRemoto.copy(isAhorro = true, metaAhorro = local.metaAhorro, fechaLimite = local.fechaLimite)
+        } else grupoRemoto
+        actualizarGrupoLocal(grupoFinal)
+        return grupoFinal
     }
 
     override suspend fun editarGasto(grupoId: Int, gastoId: Int, nuevoMonto: Double): Grupo {
-        return api.editarGasto(grupoId, gastoId, GastoEditRequest(nuevoMonto)).toDomain()
+        val response = api.editarGasto(grupoId, gastoId, GastoEditRequest(nuevoMonto))
+        val grupoRemoto = response.toDomain()
+        val local = grupoDao.getGrupoByIdSync(grupoId)
+        val grupoFinal = if (local != null && local.isAhorro && !grupoRemoto.isAhorro) {
+            grupoRemoto.copy(isAhorro = true, metaAhorro = local.metaAhorro, fechaLimite = local.fechaLimite)
+        } else grupoRemoto
+        actualizarGrupoLocal(grupoFinal)
+        return grupoFinal
     }
 
     override suspend fun guardarGrupoLocal(grupo: Grupo) {
@@ -140,25 +190,14 @@ class GruposRepositoryImpl @Inject constructor(
     }
 
     override suspend fun obtenerGruposLocales(usuarioId: Int): List<Grupo> {
-        return grupoDao.getGruposByUsuarioSync(usuarioId).map { it.toDomain() }
+        return grupoDao.getGruposByUsuarioSync(usuarioId).map { mapToDomain(it) }
     }
 
     override suspend fun actualizarGrupoLocal(grupo: Grupo) {
         grupoDao.insertGrupo(grupo.toEntity())
     }
 
-    override suspend fun actualizarGrupo(grupo: Grupo) {
-        try {
-            api.actualizarGrupo(grupo.id, GrupoUpdateRequest(grupo.nombre, grupo.personas))
-        } catch (_: Exception) {}
-        grupoDao.insertGrupo(grupo.toEntity())
-    }
-
     override suspend fun eliminarGrupoLocal(grupoId: Int) {
         grupoDao.deleteGrupo(grupoId)
-    }
-
-    override suspend fun asociarUsuarioAGrupo(grupoId: Int, usuarioId: Int): Grupo {
-        return api.asociarUsuarioAGrupo(grupoId, usuarioId).toDomain()
     }
 }
