@@ -84,7 +84,7 @@ class GruposViewModel @Inject constructor(
     }
 
     private fun guardarGrupoLocalYCargar(grupoId: Int, grupoNombre: String, nombreNuevo: String, usuarioId: Int) {
-        val grupoLocal = Grupo(
+        val grupoLocal = com.example.gestorgastos.features.grupos.domain.entities.Grupo(
             id = grupoId,
             nombre = grupoNombre,
             usuarioId = usuarioId,
@@ -94,9 +94,14 @@ class GruposViewModel @Inject constructor(
         )
         viewModelScope.launch {
             repository.guardarGrupoLocal(grupoLocal)
-            repository.agregarPersona(grupoId, nombreNuevo)
-            cargarGrupos()
             
+            val gruposActuales = _uiState.value.grupos.toMutableList()
+            val yaExiste = gruposActuales.any { it.id == grupoId }
+            if (!yaExiste) {
+                gruposActuales.add(grupoLocal)
+            }
+            _uiState.update { it.copy(grupos = gruposActuales, isLoading = false, error = null) }
+
             try {
                 notificationManager.showLocalNotification(
                     title = "¡Bienvenido!",
